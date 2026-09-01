@@ -1,250 +1,174 @@
-# API Contract — STMS
+# API Contract
 
-Servlet API for ticket write operations. All endpoints are **author-tier**, **POST-only**, and use **HTML form encoding** with **HTTP redirect** responses.
+Base URL (local author): `http://localhost:4502`
 
-Base URL (local): `http://localhost:4502`
-
----
-
-## Common behavior
-
-| Aspect | Rule |
-|---|---|
-| **Method** | `POST` only; `GET` returns `405 Method Not Allowed` |
-| **Content-Type** | `application/x-www-form-urlencoded` |
-| **Authentication** | AEM author session (cookie) |
-| **CSRF** | Include `:cq_csrf_token` (Granite CSRF) on all forms |
-| **Success response** | `302 Found` redirect to configured page |
-| **Error response** | `302 Found` redirect to form page with `error` query param |
-| **Persistence** | Delegated to `TicketRepository` via service user `stms-ticket-write` |
+All write endpoints: **POST only**, `application/x-www-form-urlencoded`, Granite CSRF token required, persistence via `TicketRepository` + service user `stms-ticket-write`.
 
 ---
 
-## 1. Create ticket
+## Endpoint: Create Ticket
 
-### `POST /bin/stms/ticket/create`
+**Method:** `POST`  
+**Path:** `/bin/stms/ticket/create`  
+**Purpose:** Create a new ticket under `/content/stms/tickets` with default status `open` and empty `comments` container.
 
-Creates a new support ticket under `/content/stms/tickets`.
-
-#### Request parameters
+### Request
 
 | Parameter | Required | Type | Description |
 |---|---|---|---|
-| `title` | Yes | string | Ticket title (max 200 characters) |
-| `description` | Yes | string | Ticket body text |
+| `title` | Yes | string | Max 200 characters |
+| `description` | Yes | string | Ticket body |
 | `priority` | Yes | enum | `low`, `medium`, `high`, `critical` |
-| `assignee` | No | string | Assignee identifier (typically email) |
-| `detailPage` | Yes* | path | Content path for redirect on success (no `.html`) |
-| `formPage` | Yes* | path | Content path for redirect on error |
-| `:cq_csrf_token` | Yes | string | Granite CSRF token |
+| `assignee` | No | string | Email or identifier |
+| `detailPage` | Yes* | path | Redirect on success (no `.html`) |
+| `formPage` | Yes* | path | Redirect on error |
+| `:cq_csrf_token` | Yes | string | Granite CSRF |
 
-\*Required for correct redirect behavior; servlet returns error redirect if `detailPage` missing on success.
+### Response
 
-#### Success response
+**Success (302):**
 
-```
-HTTP/1.1 302 Found
-Location: {detailPage}.html?ticketId={TICKET-NNNN}&created=true
-```
-
-#### Error response
-
-```
-HTTP/1.1 302 Found
-Location: {formPage}.html?error={encodedMessage}&title=...&description=...&priority=...&assignee=...
+```http
+Location: {detailPage}.html?ticketId=TICKET-NNNN&created=true
 ```
 
-#### Validation errors
+**Error (302):**
+
+```http
+Location: {formPage}.html?error={message}&title=...&description=...
+```
+
+### Validation Rules
+
+- Title required; max 200 chars
+- Description required
+- Priority must match `TicketPriority` enum
+
+### Error Responses
 
 | Message | Condition |
 |---|---|
 | Title is required. | Blank title |
-| Title must be 200 characters or fewer. | Title length > 200 |
+| Title must be 200 characters or fewer. | Length |
 | Description is required. | Blank description |
-| A valid priority is required. | Unknown priority value |
-| Tickets folder is not configured. | `/content/stms/tickets` missing |
+| A valid priority is required. | Invalid enum |
+| Tickets folder is not configured. | Missing `/content/stms/tickets` |
 | Ticket service is not available. | Service user login failure |
-| Unable to save the ticket. Please try again. | JCR persistence exception |
-
-#### Side effects
-
-- Creates node `/content/stms/tickets/TICKET-NNNN`
-- Sets `status=open`, `createdDate=now`
-- Creates empty `comments` child container
+| Unable to save the ticket. Please try again. | Persistence exception |
 
 ---
 
-## 2. Update ticket
+## Endpoint: Update Ticket
 
-### `POST /bin/stms/ticket/update`
+**Method:** `POST`  
+**Path:** `/bin/stms/ticket/update`  
+**Purpose:** Update an existing ticket's metadata.
 
-Updates an existing ticket.
-
-#### Request parameters
+### Request
 
 | Parameter | Required | Type | Description |
 |---|---|---|---|
-| `ticketId` | Yes | string | Node name (e.g. `TICKET-0001`) |
-| `title` | Yes | string | Updated title (max 200 characters) |
-| `description` | Yes | string | Updated description |
+| `ticketId` | Yes | string | e.g. `TICKET-0001` |
+| `title` | Yes | string | Max 200 |
+| `description` | Yes | string | |
 | `status` | Yes | enum | `open`, `in-progress`, `resolved`, `closed` |
 | `priority` | Yes | enum | `low`, `medium`, `high`, `critical` |
-| `assignee` | No | string | Updated assignee |
-| `detailPage` | Yes* | path | Redirect target on success |
-| `formPage` | Yes* | path | Redirect target on error |
-| `:cq_csrf_token` | Yes | string | Granite CSRF token |
+| `assignee` | No | string | |
+| `detailPage` | Yes* | path | |
+| `formPage` | Yes* | path | |
+| `:cq_csrf_token` | Yes | string | |
 
-#### Success response
+### Response
 
-```
-HTTP/1.1 302 Found
-Location: {detailPage}.html?ticketId={ticketId}&updated=true
-```
+**Success (302):**
 
-#### Error response
-
-```
-HTTP/1.1 302 Found
-Location: {formPage}.html?error={encodedMessage}&ticketId=...&...
+```http
+Location: {detailPage}.html?ticketId={id}&updated=true
 ```
 
-#### Validation errors
+### Validation Rules
+
+- Same as create for title/description/priority
+- Status must match `TicketStatus` enum
+- Ticket must exist
+
+### Error Responses
 
 | Message | Condition |
 |---|---|
-| Ticket ID is required. | Blank ticketId |
-| Title is required. | Blank title |
-| Title must be 200 characters or fewer. | Title length > 200 |
-| Description is required. | Blank description |
-| A valid status is required. | Unknown status |
-| A valid priority is required. | Unknown priority |
-| Ticket was not found. | No node at `/content/stms/tickets/{ticketId}` |
+| Ticket ID is required. | Blank id |
+| Ticket was not found. | Missing node |
+| A valid status is required. | Invalid enum |
 
 ---
 
-## 3. Add comment
+## Endpoint: Add Comment
 
-### `POST /bin/stms/ticket/comment`
+**Method:** `POST`  
+**Path:** `/bin/stms/ticket/comment`  
+**Purpose:** Append a comment to a ticket's `comments` container.
 
-Adds a comment to an existing ticket.
-
-#### Request parameters
+### Request
 
 | Parameter | Required | Type | Description |
 |---|---|---|---|
-| `ticketId` | Yes | string | Parent ticket node name |
-| `text` | Yes | string | Comment body (max 5000 characters) |
-| `detailPage` | Yes* | path | Redirect target on success |
-| `formPage` | Yes* | path | Redirect target on error |
-| `:cq_csrf_token` | Yes | string | Granite CSRF token |
+| `ticketId` | Yes | string | Parent ticket |
+| `text` | Yes | string | Max 5000 chars |
+| `detailPage` | Yes* | path | |
+| `formPage` | Yes* | path | |
+| `:cq_csrf_token` | Yes | string | |
 
-> **Note:** `author` is resolved server-side from the logged-in AEM user (`TicketCommentServlet.resolveAuthor`). It is not submitted by the client.
+> `author` is resolved server-side from the logged-in AEM user.
 
-#### Success response
+### Response
 
-```
-HTTP/1.1 302 Found
-Location: {detailPage}.html?ticketId={ticketId}&commentAdded=true
-```
+**Success (302):**
 
-#### Error response
-
-```
-HTTP/1.1 302 Found
-Location: {formPage}.html?error={encodedMessage}&ticketId=...&text=...
+```http
+Location: {detailPage}.html?ticketId={id}&commentAdded=true
 ```
 
-#### Validation errors
+### Validation Rules
+
+- Ticket ID, author, and text required
+- Text max 5000 characters
+
+### Error Responses
 
 | Message | Condition |
 |---|---|
-| Ticket ID is required. | Blank ticketId |
-| Author is required. | Cannot resolve current user |
-| Comment text is required. | Blank text |
-| Comment must be 5000 characters or fewer. | Text length > 5000 |
-| Ticket was not found. | Parent ticket missing |
-
-#### Side effects
-
-- Creates node `/content/stms/tickets/{ticketId}/comments/comment-{timestamp}-{seq}`
-- Sets `author`, `text`, `createdDate`
+| Comment text is required. | Blank |
+| Comment must be 5000 characters or fewer. | Length |
+| Ticket was not found. | Missing parent |
 
 ---
 
-## 4. Read API (not servlet-based)
+## Read API (page-level, not servlet)
 
-Ticket **read** operations are not exposed as REST endpoints. Data is loaded via:
+Ticket reads use Sling Models on page render — not REST endpoints.
 
-| Mechanism | Usage |
+**List filters (GET query params on list page):**
+
+| Param | Values |
 |---|---|
-| **Sling Models** | `TicketListModel`, `TicketDetailModel` on page render |
-| **TicketRepository** | `getTicket()`, `findTickets()` called from models |
-| **Query parameters** | List filters: `status`, `assignee`, `priority`, `creator`, `sort` |
-| **Detail parameter** | `ticketId` on detail/edit pages |
+| `status` | `open`, `in-progress`, `resolved`, `closed` |
+| `assignee` | email string |
+| `priority` | `low`, `medium`, `high`, `critical` |
+| `creator` | AEM username |
+| `sort` | `createdDate-asc`, `createdDate-desc` |
 
-### List query parameters (GET on page URL)
+**Detail:** `?ticketId=TICKET-NNNN`
 
-| Parameter | Values | Default |
-|---|---|---|
-| `status` | `open`, `in-progress`, `resolved`, `closed` | (none — all) |
-| `assignee` | email string | (none — all) |
-| `priority` | `low`, `medium`, `high`, `critical` | (none — all) |
-| `creator` | AEM username | (none — all) |
-| `sort` | `createdDate-asc`, `createdDate-desc` | `createdDate-desc` |
-
-Example:
-
-```
-/content/stms/us/en/tickets.html?status=open&sort=createdDate-desc
-```
-
-### Detail query parameters
-
-| Parameter | Description |
-|---|---|
-| `ticketId` | Ticket node name (e.g. `TICKET-0001`) |
-| `created` | `true` — flash after create |
-| `updated` | `true` — flash after edit |
-| `commentAdded` | `true` — flash after comment |
+Implementation: `TicketListModel`, `TicketDetailModel`, `TicketRepository.findTickets()` / `getTicket()`.
 
 ---
 
-## 5. Enum reference
+## Implementation map
 
-### Status (`TicketStatus`)
-
-| Value | Label |
-|---|---|
-| `open` | Open |
-| `in-progress` | In Progress |
-| `resolved` | Resolved |
-| `closed` | Closed |
-
-### Priority (`TicketPriority`)
-
-| Value | Label |
-|---|---|
-| `low` | Low |
-| `medium` | Medium |
-| `high` | High |
-| `critical` | Critical |
-
----
-
-## 6. Implementation map
-
-| Endpoint | Servlet class | Repository method |
+| Path | Servlet | Repository method |
 |---|---|---|
 | `/bin/stms/ticket/create` | `TicketCreateServlet` | `createTicket()` |
 | `/bin/stms/ticket/update` | `TicketEditServlet` | `updateTicket()` |
 | `/bin/stms/ticket/comment` | `TicketCommentServlet` | `addComment()` |
 
----
-
-## 7. Future API extensions (not implemented)
-
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/bin/stms/ticket.json` | GET | Headless ticket read |
-| `/bin/stms/ticket/delete` | POST | Archive/delete ticket |
-| `/bin/stms/ticket/list.json` | GET | Paginated JSON list |
+See also: `data-model.md`

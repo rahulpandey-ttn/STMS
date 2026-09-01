@@ -1,72 +1,85 @@
 # Candidate Information
 
-## Profile
+**Name:** Rahul Pandey  
+**Role:** AEM Full-Stack Developer  
+**Primary Technology Stack:** AEM as a Cloud Service, Java 21, Sling Models, HTL, Maven, Webpack, JCR  
 
-| Field | Value |
-|---|---|
-| **Project** | STMS — Support Ticket Management System |
-| **Platform** | Adobe Experience Manager as a Cloud Service |
-| **Organization** | TTN (`com.ttn.stms`) |
-| **Role** | AEM Full-Stack Developer |
-| **Primary AI tool** | Cursor (Agent, Ask, and Plan modes) |
+**Primary AI Tool Used:** Cursor (Agent, Ask, Plan modes) with `.agents/skills/` and AEM MCP (`user-aem-local-author`)  
+**Project Option Selected:** STMS — Support Ticket Management System (AEM Cloud Service)  
 
-> **Note:** Replace placeholder fields below with your personal details before submission.
-
-| Field | Value |
-|---|---|
-| **Name** | _[Your name]_ |
-| **Email** | _[Your email]_ |
-| **Date** | _[Submission date]_ |
+**Assessment Start Date:** 2026-08-30  
+**Submission Date:** 2026-09-01  
 
 ---
 
-## Technical background
+## Project Summary
 
-- **Backend:** Java 21, OSGi Declarative Services, Sling Models, Sling Servlets, QueryBuilder
-- **Frontend:** HTL (Sightly), Granite/Coral UI dialogs, component clientlibs, Webpack
-- **AEM:** Editable templates, Core WCM Components, repoinit, service users, Oak indexes
-- **Build & deploy:** Maven, AEM SDK local Quickstart, Cloud Manager pipelines
-- **Testing:** JUnit 5, WCM.io AEM Mocks, Cypress (ui.tests), AEM Testing Clients (it.tests)
-- **Tooling:** Cursor AI, AEM MCP (`user-aem-local-author`), Dispatcher SDK validation
+STMS is a support ticket management application built on AEM as a Cloud Service. Tickets are stored as JCR nodes under `/content/stms/tickets`, rendered through six AEM components (app shell, list, create, detail, edit, comments), and mutated via OSGi `TicketRepository` and Sling servlets at `/bin/stms/ticket/*`.
 
----
+Delivered capabilities:
 
-## STMS project summary
-
-Built a support ticket management application on AEM Cloud Service featuring:
-
-- JCR-backed ticket storage under `/content/stms/tickets`
-- CRUD operations via OSGi `TicketRepository` and Sling servlets (`/bin/stms/ticket/*`)
-- Six AEM components: app shell, ticket list, create, detail, edit, and comments
-- Service-user writes (`stms-ticket-service` / `stms-ticket-write` subservice)
-- Unit test coverage for repository, models, and servlets
+- Ticket CRUD (create, read, update) and comments
+- List with sort and filter (status, assignee, priority, creator)
+- Service-user writes (`stms-ticket-service` / `stms-ticket-write`)
+- Unit tests (18 classes) and integration test scaffold (`TicketCreateIT`)
+- Cloud Service patterns: repoinit, Oak index, module separation (`core`, `ui.apps`, `ui.config`, `ui.content`)
 
 ---
 
-## AI-assisted delivery approach
+## Tools Used
 
-| Phase | Tool / artifact |
+| Tool | Purpose |
 |---|---|
-| Requirements | Cursor + `.res.local/documents/STMS-propmts.md` |
-| Planning | Cursor Plan mode + `implementation-plan.md` |
-| Implementation | Cursor Agent mode + `.agents/skills/` |
-| Validation | `mvn test -pl core`, local AEM SDK, AEM MCP diagnostics |
-| Documentation | Project root docs (`requirements-analysis.md`, `api-contract.md`, etc.) |
-
-See `.res.local/documents/tool-workflow.md` for the full AI workflow foundation.
+| **Cursor** | Primary IDE agent — planning, implementation, debugging, documentation |
+| **AEM Cloud SDK** | Local author (`localhost:4502`) runtime verification |
+| **Maven** | Build, test, package deploy (`-PautoInstallSinglePackage`) |
+| **AEM MCP** | Local log tail, OSGi bundle diagnosis, recent requests |
+| **`.agents/skills/`** | Domain playbooks (`create-component`, `aem-workflow`, `code-assessment`) |
+| **JUnit 5 + AEM Mock** | Unit tests in `core` |
+| **AEM Testing Clients** | Integration tests in `it.tests` |
+| **Dispatcher SDK** | `dispatcher/bin/validate.sh` |
 
 ---
 
-## Repository references
+## Setup Summary
 
-| Document | Purpose |
+### Prerequisites
+
+- Java 21 (see `.cloudmanager/java-version`)
+- AEM as a Cloud Service SDK (author on port 4502)
+- Maven 3.x, Node.js (for `ui.frontend` optional)
+
+### Build and deploy
+
+```bash
+mvn clean install -PautoInstallSinglePackage
+```
+
+### Smoke URLs (author)
+
+| Page | URL |
 |---|---|
-| `AGENTS.md` | Project module guide for AI and developers |
-| `requirements-analysis.md` | Functional and non-functional requirements |
-| `acceptance-criteria.md` | Testable acceptance criteria |
+| Ticket list | `http://localhost:4502/content/stms/us/en/tickets.html` |
+| Create ticket | `http://localhost:4502/content/stms/us/en/tickets/create-ticket.html` |
+| Ticket detail | `http://localhost:4502/content/stms/us/en/ticket-detail.html?ticketId=TICKET-0001` |
+
+### Run tests
+
+```bash
+mvn test -pl core
+mvn clean verify -pl it.tests -Plocal   # requires running AEM + deployed packages
+```
+
+### Key documentation
+
+| File | Purpose |
+|---|---|
+| `requirements-analysis.md` | Requirements and assumptions |
 | `implementation-plan.md` | Phased delivery plan |
-| `design-notes.md` | Architecture and design decisions |
-| `api-contract.md` | Servlet API specification |
-| `data-model.md` | JCR schema and Sling Models |
-| `ui-flow.md` | End-user page flows |
-| `test-strategy.md` | Testing approach and coverage |
+| `design-notes.md` | Architecture |
+| `api-contract.md` | Servlet API |
+| `data-model.md` | JCR schema (supplementary) |
+| `ui-flow.md` | User journeys (supplementary) |
+| `ai-prompts/history/` | Prompt history by activity |
+| `debugging-notes.md` | Real issues and fixes |
+| `reflection.md` | Self-assessment |

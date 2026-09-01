@@ -1,164 +1,98 @@
-# Requirements Analysis — STMS
+# Requirement Analysis
 
-## Document control
+## Selected Project Option
 
-| Item | Detail |
+**STMS — Support Ticket Management System** on **Adobe Experience Manager as a Cloud Service**.
+
+Authors and support staff need to create, list, filter, assign, update, and comment on support tickets inside AEM without an external ticketing database. Tickets are operational JCR content; the UI is built with HTL components and Granite dialogs.
+
+---
+
+## My Understanding (in your own words)
+
+STMS is an author-side support desk embedded in AEM. Each ticket is a content node (not a page) with metadata and a comment thread. Users interact through a small app shell (sidebar + top bar) and ticket-specific components. Writes go through secured OSGi services using a dedicated service user — not the end user's JCR session directly. The goal is to demonstrate full-stack AEM Cloud Service delivery: JCR design, Sling Models, servlets, HTL, repoinit, indexing, and tests.
+
+I treated this as a vertical-slice feature: every ticket capability spans `core` (Java), `ui.apps` (HTL/dialogs), and usually `ui.content` (sample pages). Cloud Service constraints (no `/libs` writes, pipeline deploy, Java 21) are non-negotiable.
+
+---
+
+## Functional Requirements
+
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-1 | Store tickets under `/content/stms/tickets` as JCR nodes with id, title, description, status, priority, assignee, created date | Must |
+| FR-2 | Store comments as child nodes under each ticket | Must |
+| FR-3 | List all tickets with sort by creation date | Must |
+| FR-4 | Filter tickets by status, assignee, priority, creator | Must |
+| FR-5 | Create ticket via form (title, description, priority, assignee) | Must |
+| FR-6 | View ticket detail by `ticketId` query parameter | Must |
+| FR-7 | Edit ticket (title, description, status, priority, assignee) | Must |
+| FR-8 | Add comments on detail page; author from logged-in user | Must |
+| FR-9 | App shell with sidebar navigation and top bar branding | Must |
+| FR-10 | Client-side validation on create form; create action on list | Should |
+| FR-11 | Shared visual design tokens in base clientlib | Should |
+
+---
+
+## Non-Functional Requirements
+
+| ID | Requirement |
 |---|---|
-| **Project** | STMS (Support Ticket Management System) |
-| **Platform** | AEM as a Cloud Service |
-| **Status** | Implemented (baseline) |
-| **Source prompts** | `.res.local/documents/STMS-propmts.md` |
+| NFR-1 | AEM Cloud Service compatible (AEM analyser, SDK API) |
+| NFR-2 | Java 21; OSGi DS R6 |
+| NFR-3 | Module separation: Java → `core`, HTL → `ui.apps`, OSGi JSON → `ui.config` |
+| NFR-4 | Ticket writes via service user `stms-ticket-write` — no admin sessions |
+| NFR-5 | QueryBuilder listing with Oak Lucene index for performance |
+| NFR-6 | Unit tests for repository, models, servlets |
+| NFR-7 | Deploy via Maven profiles to local SDK; production via Cloud Manager |
+| NFR-8 | CSRF protection on POST forms |
 
 ---
 
-## 1. Problem statement
+## Assumptions
 
-Organizations need a lightweight support ticket system embedded in AEM so authors and support staff can create, track, assign, and comment on tickets without leaving the content platform. STMS stores tickets as JCR content, renders them through AEM components, and persists changes via secured OSGi services.
+1. Users are authenticated AEM authors on the author tier.
+2. `/content/stms/tickets` folder is created via content package or repoinit.
+3. Ticket IDs use sequential `TICKET-NNNN` naming.
+4. New tickets default to status `open`.
+5. Assignee is a free-text field (email), not a Granite user picker (future enhancement).
+6. No publish-tier write flows in baseline; author is the primary environment.
+7. Form POST + HTTP redirect is acceptable (no headless JSON API required for MVP).
 
 ---
 
-## 2. Stakeholders
+## Clarifications (questions for a product owner)
 
-| Stakeholder | Interest |
+| # | Question | Default taken |
+|---|---|---|
+| Q-1 | Should ticket delete/archive be supported? | Out of scope for MVP |
+| Q-2 | Who can edit assignee vs. status — all authors or role-based? | All authenticated authors |
+| Q-3 | Email notifications on ticket events? | Out of scope |
+| Q-4 | Granite Workflow for approval (e.g. Resolved → Closed)? | Future phase |
+| Q-5 | Publish-tier read-only ticket views for external users? | Not in MVP |
+| Q-6 | Attachment support on tickets? | Out of scope |
+
+---
+
+## Edge Cases
+
+| Scenario | Expected behavior |
 |---|---|
-| **Support agent** | List, filter, assign, update, and comment on tickets |
-| **Ticket creator** | Submit new tickets with title, description, priority, assignee |
-| **AEM developer** | Maintainable Cloud Service–compliant codebase |
-| **Platform operator** | Service-user security, repoinit, pipeline deploy |
+| Missing `ticketId` on detail page | Empty / not-found state; no server error |
+| Unknown `ticketId` | Repository returns empty; UI shows not found |
+| Title > 200 characters | Server validation error; form values preserved |
+| Comment > 5000 characters | Server validation error |
+| Invalid status or priority enum | Server validation error on update/create |
+| `/content/stms/tickets` missing | "Tickets folder is not configured." |
+| Service user not mapped | "Ticket service is not available." |
+| GET on write servlet | HTTP 405 Method Not Allowed |
+| Ticket node without `sling:resourceType` | Excluded from QueryBuilder list |
+| Empty filter on list | Show all tickets (subject to sort) |
 
 ---
 
-## 3. Functional requirements
+## Traceability
 
-### FR-1 — Ticket storage
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-1.1 | Store tickets under `/content/stms/tickets` as JCR nodes | Must |
-| FR-1.2 | Each ticket has: id, title, description, status, priority, assignee, creation date | Must |
-| FR-1.3 | Comments stored as child nodes under each ticket | Must |
-| FR-1.4 | Ticket IDs follow `TICKET-NNNN` sequential pattern | Must |
-| FR-1.5 | New tickets default to status `open` | Must |
-
-### FR-2 — Ticket listing
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-2.1 | Display all tickets in a list component | Must |
-| FR-2.2 | Sort by creation date (ascending/descending) | Must |
-| FR-2.3 | Filter by status, assignee, priority, creator | Must |
-| FR-2.4 | Link from list row to ticket detail page | Must |
-| FR-2.5 | Provide action to navigate to create-ticket page | Must |
-
-### FR-3 — Ticket creation
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-3.1 | Form captures title, description, priority, assignee | Must |
-| FR-3.2 | Client-side validation before submit | Should |
-| FR-3.3 | Server-side validation (required fields, max lengths, valid priority) | Must |
-| FR-3.4 | Redirect to detail page on success | Must |
-| FR-3.5 | Redirect back to form with error message and preserved values on failure | Must |
-
-### FR-4 — Ticket detail
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-4.1 | Display full ticket metadata and description | Must |
-| FR-4.2 | Show comment thread ordered by date | Must |
-| FR-4.3 | Resolve ticket by query parameter `ticketId` | Must |
-| FR-4.4 | Link to edit-ticket page | Should |
-
-### FR-5 — Ticket edit
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-5.1 | Edit title, description, status, priority, assignee | Must |
-| FR-5.2 | Validate status and priority against allowed enums | Must |
-| FR-5.3 | Redirect to detail page with success indicator on save | Must |
-
-### FR-6 — Comments
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-6.1 | Add comment via form on detail page | Must |
-| FR-6.2 | Author derived from logged-in AEM user | Must |
-| FR-6.3 | Comment text max 5000 characters | Must |
-| FR-6.4 | Redirect to detail with confirmation on success | Must |
-
-### FR-7 — Application shell
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-7.1 | Sidebar navigation for workspace sections | Must |
-| FR-7.2 | Top bar with branding and user context | Must |
-| FR-7.3 | Configurable page paths for list and create via dialog | Must |
-
-### FR-8 — Visual design
-
-| ID | Requirement | Priority |
-|---|---|---|
-| FR-8.1 | Apply shared design tokens in base clientlib | Should |
-| FR-8.2 | Component-scoped CSS for ticket UI | Should |
-| FR-8.3 | Status badges and priority indicators | Should |
-
----
-
-## 4. Non-functional requirements
-
-| ID | Requirement | Target |
-|---|---|---|
-| NFR-1 | AEM Cloud Service compatibility | Pass AEM analyser; no deprecated APIs |
-| NFR-2 | Write security | Service user `stms-ticket-service`; no admin sessions for persistence |
-| NFR-3 | Module separation | Java in `core`; HTL in `ui.apps`; config in `ui.config` |
-| NFR-4 | Search performance | Oak Lucene index on ticket properties |
-| NFR-5 | Testability | Unit tests for repository, models, servlets |
-| NFR-6 | Local development | Maven profiles for SDK deploy |
-| NFR-7 | Production deploy | Cloud Manager Full Stack Pipeline |
-
----
-
-## 5. Out of scope (baseline)
-
-- Multi-tenant ticket isolation beyond AEM ACLs
-- Email notifications on ticket events
-- Granite Workflow approval chains (skill available; not implemented)
-- Headless JSON API (form POST servlets only)
-- Attachment uploads on tickets
-- Delete / archive ticket workflow
-
----
-
-## 6. Assumptions and constraints
-
-| # | Assumption / constraint |
-|---|---|
-| A-1 | Authors are authenticated AEM users on author tier |
-| A-2 | Ticket content path `/content/stms/tickets` is created via content package or repoinit |
-| A-3 | `/libs` is immutable; all code under `/apps/stms` |
-| A-4 | Java 21 per `.cloudmanager/java-version` |
-| A-5 | Core WCM Components 2.28.0 for page scaffolding |
-
----
-
-## 7. Requirements traceability
-
-| Prompt (#) | Requirement IDs | Deliverable |
-|---|---|---|
-| 2–3 | FR-1 | JCR schema, `TicketModel`, `TicketRepository` |
-| 4–5 | FR-2 | `ticketlist` component, `TicketListModel` |
-| 6 | FR-4 | `ticketdetail` component |
-| 7–8 | FR-3 | `ticketcreate` component, `TicketCreateServlet` |
-| 9 | FR-6 | `ticketcomments` component, `TicketCommentServlet` |
-| 10 | FR-5 | `ticketedit` component, `TicketEditServlet` |
-| 11 | FR-8 | `clientlib-base` tokens and component CSS |
-| 12 | FR-7 | `appshell` component, `AppShellModel` |
-
----
-
-## 8. Open questions / future enhancements
-
-1. Publish-tier read-only ticket views for external users?
-2. Role-based field visibility (e.g. only managers change assignee)?
-3. Integration with Adobe IMS groups for assignee picker?
-4. Workflow-driven status transitions (Resolved → Closed approval)?
+Original feature prompts: `ai-prompts/STMS-propmts-history.md`  
+Design plan output: `ai-prompts/ticket_jcr_schema_design_24dcc4d5.plan.md`  
+Acceptance criteria: `acceptance-criteria.md`

@@ -1,241 +1,325 @@
-# Data Model — STMS
+---
+name: Ticket JCR Schema Design
+overview: Define a JCR node schema under `/content/stms/tickets` using `nt:unstructured` data nodes with child comment subnodes, plus an OSGi-backed Sling Model layer in `core` for single-ticket adaptation and repository-based listing/querying.
+todos:
+  - id: jcr-schema
+    content: Add /content/stms/tickets folder + sample ticket nodes in ui.content with filter.xml entry
+    status: completed
+  - id: enums
+    content: Create TicketStatus and TicketPriority enums with fromValue() parsing
+    status: completed
+  - id: sling-models
+    content: Implement TicketModel, TicketCommentModel, and TicketListModel in com.ttn.stms.core.tickets.models
+    status: completed
+  - id: osgi-repo
+    content: Implement TicketRepository interface and TicketRepositoryImpl with QueryBuilder listing
+    status: completed
+  - id: unit-tests
+    content: Add TicketModelTest and TicketRepositoryImplTest using AppAemContext
+    status: completed
+  - id: oak-index
+    content: Add stms-ticket-index Oak index in ui.config when query performance is needed
+    status: completed
+isProject: false
+---
 
-JCR content structure, properties, and Sling Model mapping for the Support Ticket Management System.
+# Support Ticket JCR Schema and Sling Model Architecture
+
+## Design Principles
+
+- **Data nodes, not pages** — Tickets are operational data, not authored pages. Use `nt:unstructured` with a dedicated `sling:resourceType` rather than `cq:Page`.
+- **Node name = ticket ID** — Enables direct lookup at `/content/stms/tickets/{ticketId}` without a separate index property (still store `ticketId` for portability and API responses).
+- **Comments as ordered child nodes** — Under a `comments` container; each comment is its own subnode (append-only, easy to audit).
+- **Closed vocabularies** — `status` and `priority` stored as lowercase kebab-case strings, validated in Java enums.
+- **Align with STMS conventions** — Package root [`com.ttn.stms.core`](core/src/main/java/com/ttn/stms/core/), `Resource`-adaptable models (same pattern as [`HelloWorldModel`](core/src/main/java/com/ttn/stms/core/models/HelloWorldModel.java)), tests via [`AppAemContext`](core/src/test/java/com/ttn/stms/core/testcontext/AppAemContext.java).
 
 ---
 
-## 1. Repository overview
+## JCR Node Schema — ASCII Directory Structure
 
-| Item | Value |
-|---|---|
-| **Tickets root** | `/content/stms/tickets` |
-| **Root type** | `sling:OrderedFolder` (or folder created via content package) |
-| **Write ACL** | `stms-ticket-service` — `jcr:read`, `rep:write`, `jcr:versionManagement`, `jcr:lockManagement` |
-| **Search index** | `/_oak_index/stms-ticket-index` (Lucene) |
-
----
-
-## 2. Node hierarchy
-
-```text
-/content/stms/tickets/                          [folder]
-└── TICKET-0001/                                nt:unstructured
-    ├── jcr:primaryType                         nt:unstructured
-    ├── sling:resourceType                      stms/tickets/ticket
-    ├── ticketId                                "TICKET-0001"
-    ├── title                                   "Cannot access DAM assets"
-    ├── description                             "User reports 403 on /assets.html"
-    ├── status                                  "open" | "in-progress" | "resolved" | "closed"
-    ├── priority                                "low" | "medium" | "high" | "critical"
-    ├── assignee                                "agent@example.com" (optional)
-    ├── createdDate                               Calendar
-    ├── jcr:createdBy                             (system — creator username)
-    └── comments/                                 nt:unstructured
-        ├── sling:resourceType                    stms/tickets/comments
-        └── comment-20260901-143022-001/          nt:unstructured
-            ├── sling:resourceType                stms/tickets/comment
-            ├── commentId                         "comment-20260901-143022-001"
-            ├── author                            "author@example.com"
-            ├── text                              "Investigating permissions."
-            └── createdDate                       Calendar
+```
+/content/stms/tickets                          [sling:Folder | nt:unstructured]
+│   jcr:title = "Support Tickets"
+│   sling:resourceType = "stms/tickets/folder"
+│
+├── TICKET-0001                                [nt:unstructured]
+│   │   sling:resourceType = "stms/tickets/ticket"
+│   │   ticketId       = "TICKET-0001"         (String)
+│   │   title          = "Login page returns 500" (String)
+│   │   description    = "Users cannot sign in..." (String, plain or HTML)
+│   │   status         = "open"                (String enum)
+│   │   priority       = "high"                (String enum)
+│   │   assignee       = "rahul.pandey@ttn.com" (String — email or /home/users/... path)
+│   │   createdDate    = "2026-08-31T10:15:00.000+05:30" (Date, Calendar)
+│   │   jcr:created    = (system audit — do not overwrite)
+│   │   jcr:lastModified = (system audit)
+│   │   jcr:createdBy  = (system audit)
+│   │
+│   └── comments                                 [nt:unstructured]
+│       │   sling:resourceType = "stms/tickets/comments"
+│       │
+│       ├── comment-20260831-101530-001          [nt:unstructured]
+│       │       sling:resourceType = "stms/tickets/comment"
+│       │       commentId    = "comment-20260831-101530-001"
+│       │       author       = "admin"
+│       │       text         = "Reproduced on Chrome 128."
+│       │       createdDate  = "2026-08-31T10:15:30.000+05:30"
+│       │
+│       └── comment-20260831-143000-002          [nt:unstructured]
+│               commentId    = "comment-20260831-143000-002"
+│               author       = "rahul.pandey@ttn.com"
+│               text         = "Assigned to backend team."
+│               createdDate  = "2026-08-31T14:30:00.000+05:30"
+│
+├── TICKET-0002                                [nt:unstructured]
+│   │   ticketId = "TICKET-0002"
+│   │   status   = "in-progress"
+│   │   ...
+│   └── comments/
+│       └── comment-...
+│
+└── TICKET-0003                                [nt:unstructured]
+    │   status   = "resolved"
+    └── comments/
+        └── comment-...
 ```
 
----
+### Enumerated Property Values
 
-## 3. Entity definitions
-
-### 3.1 Ticket (`stms/tickets/ticket`)
-
-| Property | JCR type | Required | Description |
-|---|---|---|---|
-| `jcr:primaryType` | Name | Yes | `nt:unstructured` |
-| `sling:resourceType` | String | Yes | `stms/tickets/ticket` |
-| `ticketId` | String | Yes | Duplicate of node name (`TICKET-NNNN`) |
-| `title` | String | Yes | Max 200 characters |
-| `description` | String | Yes | Free text |
-| `status` | String | Yes | See `TicketStatus` enum |
-| `priority` | String | Yes | See `TicketPriority` enum |
-| `assignee` | String | No | Assignee email or identifier |
-| `createdDate` | Date | Yes | Set on create |
-| `jcr:createdBy` | String | System | AEM user who created the node |
-
-**Sling Model:** `TicketModel` (`adaptables = Resource.class`)
-
-**ID generation:** `TicketRepositoryImpl.generateNextTicketId()` — scans siblings matching `TICKET-\d+`, increments.
-
----
-
-### 3.2 Comments container (`stms/tickets/comments`)
-
-| Property | JCR type | Required | Description |
-|---|---|---|---|
-| `jcr:primaryType` | Name | Yes | `nt:unstructured` |
-| `sling:resourceType` | String | Yes | `stms/tickets/comments` |
-
-**Sling Model:** `TicketCommentsContainerModel`
-
-Created automatically with each new ticket. Lazily created on first comment if missing.
-
----
-
-### 3.3 Comment (`stms/tickets/comment`)
-
-| Property | JCR type | Required | Description |
-|---|---|---|---|
-| `jcr:primaryType` | Name | Yes | `nt:unstructured` |
-| `sling:resourceType` | String | Yes | `stms/tickets/comment` |
-| `commentId` | String | Yes | Node name (`comment-{timestamp}-{seq}`) |
-| `author` | String | Yes | Resolved from logged-in user |
-| `text` | String | Yes | Max 5000 characters |
-| `createdDate` | Date | Yes | Set on create |
-
-**Sling Model:** `TicketCommentModel` (`adaptables = Resource.class`)
-
-**ID generation:** `generateCommentId()` — `comment-yyyyMMdd-HHmmss-NNN`.
-
----
-
-## 4. Enumerations
-
-### TicketStatus
-
-| Stored value | Label |
+| Property | Allowed Values |
 |---|---|
-| `open` | Open |
-| `in-progress` | In Progress |
-| `resolved` | Resolved |
-| `closed` | Closed |
+| `status` | `open`, `in-progress`, `resolved`, `closed` |
+| `priority` | `low`, `medium`, `high`, `critical` |
 
-**Default on create:** `open`
+### Node Type Summary
 
-### TicketPriority
-
-| Stored value | Label |
-|---|---|
-| `low` | Low |
-| `medium` | Medium |
-| `high` | High |
-| `critical` | Critical |
-
-**Default on create form:** `medium` (UI default in `TicketCreateModel`)
-
----
-
-## 5. OSGi service layer
-
-### TicketRepository
-
-```text
-TicketRepository (interface)
-    ├── getTicket(resolver, ticketId)           → Optional<TicketModel>
-    ├── findTickets(resolver, criteria)         → List<TicketModel>
-    ├── findAllTickets(resolver)                → List<TicketModel>
-    ├── createTicket(request)                   → TicketCreateResult
-    ├── updateTicket(request)                   → TicketUpdateResult
-    └── addComment(request)                     → TicketCommentCreateResult
-```
-
-**Implementation:** `TicketRepositoryImpl`
-
-**Write subservice:** `stms-ticket-write`
-
----
-
-## 6. DTOs (transfer objects)
-
-| Class | Fields | Used by |
+| Path segment | `jcr:primaryType` | `sling:resourceType` |
 |---|---|---|
-| `TicketCreateRequest` | title, description, priority, assignee | `createTicket()` |
-| `TicketUpdateRequest` | ticketId, title, description, status, priority, assignee | `updateTicket()` |
-| `TicketCommentCreateRequest` | ticketId, text, author | `addComment()` |
-| `TicketSearchCriteria` | status, assignee, priority, creator, sortAscending, limit | `findTickets()` |
+| `tickets` | `sling:Folder` | `stms/tickets/folder` |
+| `{ticketId}` | `nt:unstructured` | `stms/tickets/ticket` |
+| `comments` | `nt:unstructured` | `stms/tickets/comments` |
+| `comment-*` | `nt:unstructured` | `stms/tickets/comment` |
 
----
+### Sample `.content.xml` (one ticket)
 
-## 7. Query model
+Deploy via [`ui.content`](ui.content/) under `jcr_root/content/stms/tickets/`:
 
-`TicketRepositoryImpl` builds QueryBuilder predicates:
-
-| Predicate | Property | Notes |
-|---|---|---|
-| `path` | — | `/content/stms/tickets` |
-| `type` | — | `nt:unstructured` |
-| `property` | `sling:resourceType` | `stms/tickets/ticket` |
-| `property` | `status` | When filter set |
-| `property` | `assignee` | When filter set |
-| `property` | `priority` | When filter set |
-| `property` | `jcr:createdBy` | When creator filter set |
-| `orderby` | `@createdDate` | `desc` or `asc` |
-| `p.limit` | — | From criteria (default unlimited) |
-
-**Index:** `stms-ticket-index` indexes `sling:resourceType`, `status`, `assignee`, `createdDate`.
-
----
-
-## 8. Component ↔ content mapping
-
-| AEM component | `sling:resourceType` | Data source |
-|---|---|---|
-| `ticketlist` | `stms/components/ticketlist` | `TicketRepository.findTickets()` |
-| `ticketdetail` | `stms/components/ticketdetail` | `TicketRepository.getTicket()` via `ticketId` param |
-| `ticketcreate` | `stms/components/ticketcreate` | Form only (no JCR read) |
-| `ticketedit` | `stms/components/ticketedit` | `TicketRepository.getTicket()` |
-| `ticketcomments` | `stms/components/ticketcomments` | Comments from parent `TicketModel` |
-| `appshell` | `stms/components/appshell` | Nav config + optional ticket counts |
-
----
-
-## 9. Configuration data (ui.config)
-
-### Repoinit (`RepositoryInitializer~stms.cfg.json`)
-
-- Creates `/content/dam/stms` with `cq:conf=/conf/stms`
-- Creates service user `stms-ticket-service`
-- Grants ACL on `/content/stms/tickets`
-
-### Service user mapping
-
-```json
-"stms.core:stms-ticket-write=[stms-ticket-service]"
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0"
+          xmlns:jcr="http://www.jcp.org/jcr/1.0"
+          jcr:primaryType="sling:Folder"
+          jcr:title="Support Tickets"
+          sling:resourceType="stms/tickets/folder">
+    <TICKET-0001 jcr:primaryType="nt:unstructured"
+                 sling:resourceType="stms/tickets/ticket"
+                 ticketId="TICKET-0001"
+                 title="Login page returns 500"
+                 description="Users cannot sign in after deploy."
+                 status="open"
+                 priority="high"
+                 assignee="rahul.pandey@ttn.com"
+                 createdDate="{Date}2026-08-31T10:15:00.000+05:30">
+        <comments jcr:primaryType="nt:unstructured"
+                  sling:resourceType="stms/tickets/comments">
+            <comment-20260831-101530-001
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="stms/tickets/comment"
+                commentId="comment-20260831-101530-001"
+                author="admin"
+                text="Reproduced on Chrome 128."
+                createdDate="{Date}2026-08-31T10:15:30.000+05:30"/>
+        </comments>
+    </TICKET-0001>
+</jcr:root>
 ```
 
+Also add `/content/stms/tickets` to [`ui.content/.../META-INF/vault/filter.xml`](ui.content/src/main/content/META-INF/vault/filter.xml).
+
 ---
 
-## 10. Sample content paths (ui.content)
+## Sling Model Architecture
 
-| Page | Path |
+### Package Layout
+
+```
+core/src/main/java/com/ttn/stms/core/tickets/
+├── enums/
+│   ├── TicketStatus.java          # fromValue("open") → OPEN
+│   └── TicketPriority.java        # fromValue("high") → HIGH
+├── models/
+│   ├── TicketModel.java           # single ticket (Resource-adaptable)
+│   ├── TicketCommentModel.java    # single comment child
+│   └── TicketListModel.java       # HTL list component model
+└── services/
+    ├── TicketRepository.java      # OSGi service interface
+    └── impl/
+        └── TicketRepositoryImpl.java  # @Component DS implementation
+```
+
+### Read Flow
+
+```mermaid
+flowchart TD
+    HTL["HTL component"] -->|"data-sly-use"| TicketListModel
+    HTL -->|"data-sly-use on ticket resource"| TicketModel
+    TicketListModel -->|"@OSGiService"| TicketRepository
+    TicketRepository -->|"QueryBuilder / getResource"| JCR["/content/stms/tickets"]
+    TicketModel -->|"@ChildResource name=comments"| TicketCommentModel
+    TicketModel -->|"@ValueMapValue"| Props["ticketId, title, status, ..."]
+    TicketCommentModel -->|"@ValueMapValue"| CommentProps["author, text, createdDate"]
+```
+
+### Model Responsibilities
+
+**`TicketModel`** — Adapts a single ticket `Resource`.
+
+```java
+@Model(
+    adaptables = Resource.class,
+    resourceType = TicketModel.RESOURCE_TYPE,
+    defaultInjectionStrategy = DefaultInjectionStrategy.OPTIONAL
+)
+public class TicketModel {
+    public static final String RESOURCE_TYPE = "stms/tickets/ticket";
+
+    @ValueMapValue private String ticketId;
+    @ValueMapValue private String title;
+    @ValueMapValue private String description;
+    @ValueMapValue private String status;      // raw JCR value
+    @ValueMapValue private String priority;
+    @ValueMapValue private String assignee;
+    @ValueMapValue private Calendar createdDate;
+
+    @ChildResource(name = "comments")
+    private List<TicketCommentModel> comments;
+
+    // Typed getters: getStatusEnum(), getPriorityEnum()
+    // getComments() returns unmodifiable list sorted by createdDate
+}
+```
+
+**`TicketCommentModel`** — Adapts each comment subnode.
+
+```java
+@Model(
+    adaptables = Resource.class,
+    resourceType = TicketCommentModel.RESOURCE_TYPE,
+    defaultInjectionStrategy = DefaultInjectionStrategy.OPTIONAL
+)
+public class TicketCommentModel {
+    public static final String RESOURCE_TYPE = "stms/tickets/comment";
+
+    @ValueMapValue private String commentId;
+    @ValueMapValue private String author;
+    @ValueMapValue private String text;
+    @ValueMapValue private Calendar createdDate;
+}
+```
+
+**`TicketListModel`** — For list/dashboard HTL; delegates querying to OSGi service.
+
+```java
+@Model(adaptables = SlingHttpServletRequest.class)
+public class TicketListModel {
+    @OSGiService private TicketRepository ticketRepository;
+    @SlingObject private ResourceResolver resolver;
+
+    @RequestAttribute(name = "status")   // optional filter from request
+    private String statusFilter;
+
+    @PostConstruct void init() {
+        tickets = ticketRepository.findTickets(resolver, statusFilter, assigneeFilter, limit);
+    }
+}
+```
+
+### OSGi Service Layer
+
+**`TicketRepository`** (interface) — Keeps JCR access out of Sling Models (testable, reusable from servlets/workflows later).
+
+| Method | Purpose |
 |---|---|
-| Ticket list | `/content/stms/us/en/tickets` |
-| Create ticket | `/content/stms/us/en/tickets/create-ticket` |
-| Edit ticket | `/content/stms/us/en/tickets/edit-ticket` |
-| Ticket detail | `/content/stms/us/en/ticket-detail` |
+| `Optional<TicketModel> getTicket(ResourceResolver, String ticketId)` | Direct path lookup |
+| `List<TicketModel> findTickets(resolver, status, assignee, limit)` | Filtered listing |
+| `List<TicketModel> findAllTickets(resolver)` | Full list (paginated in impl) |
 
-Detail and edit pages resolve ticket via `?ticketId=TICKET-NNNN`.
+**`TicketRepositoryImpl`** — `@Component(service = TicketRepository.class)` using:
+- **Direct read**: `resolver.getResource("/content/stms/tickets/" + ticketId).adaptTo(TicketModel.class)`
+- **Filtered list**: AEM `QueryBuilder` with predicates on `sling:resourceType`, `status`, `assignee` under `/content/stms/tickets`
 
----
+Example query predicates:
 
-## 11. Entity relationship diagram
+```
+path=/content/stms/tickets
+type=nt:unstructured
+property=sling:resourceType
+property.value=stms/tickets/ticket
+property=status
+property.value=open
+orderby=@createdDate
+orderby.sort=desc
+```
 
-```text
-┌─────────────────┐       1     *      ┌──────────────────────┐
-│     Ticket      │───────────────────►│  CommentsContainer   │
-│  TICKET-NNNN    │                    │      comments/       │
-└────────┬────────┘                    └──────────┬───────────┘
-         │                                        │ 1
-         │ properties                             │
-         │ title, status, ...                     │ *
-         │                                        ▼
-         │                             ┌──────────────────────┐
-         │                             │       Comment        │
-         │                             │ comment-{ts}-{seq}   │
-         └────────────────────────────►│ author, text, date   │
-              (logical parent)         └──────────────────────┘
+### HTL Usage Patterns
+
+**Single ticket** (resource-bound component):
+
+```html
+<div data-sly-use.ticket="com.ttn.stms.core.tickets.models.TicketModel">
+  <h2>${ticket.title}</h2>
+  <p>Status: ${ticket.statusEnum.label}</p>
+  <ul data-sly-list.comment="${ticket.comments}">
+    <li>${comment.author}: ${comment.text}</li>
+  </ul>
+</div>
+```
+
+**Ticket list** (dedicated list component):
+
+```html
+<div data-sly-use.list="com.ttn.stms.core.tickets.models.TicketListModel">
+  <div data-sly-repeat.ticket="${list.tickets}">
+    ${ticket.ticketId} — ${ticket.title} (${ticket.status})
+  </div>
+</div>
 ```
 
 ---
 
-## 12. Related documents
+## Oak Index (Cloud Service — follow-up)
 
-- `api-contract.md` — Servlet write contracts
-- `design-notes.md` — Architecture decisions
-- `acceptance-criteria.md` — Validation rules as test criteria
+No custom Oak indexes exist in the project today. Once ticket volume grows, add an index under `ui.config` for efficient filtering:
+
+```
+/oak:index/stms-ticket-index
+  - sling:resourceType (propertyIndex)
+  - status (propertyIndex)
+  - assignee (propertyIndex)
+  - createdDate (orderedIndex)
+```
+
+Required for performant `findTickets()` queries at scale on AEM Cloud.
+
+---
+
+## Test Strategy
+
+Mirror existing [`HelloWorldModelTest`](core/src/test/java/com/ttn/stms/core/models/HelloWorldModelTest.java) patterns:
+
+- **`TicketModelTest`** — `AppAemContext` creates ticket + comment nodes; assert property mapping and comment list size.
+- **`TicketRepositoryImplTest`** — Seed multiple tickets; assert `findTickets(resolver, "open", null, 10)` returns expected count.
+- **`TicketStatusTest`** — Unit test enum `fromValue()` rejects invalid JCR values gracefully.
+
+---
+
+## Files to Create (implementation phase)
+
+| Module | Files |
+|---|---|
+| `ui.content` | `content/stms/tickets/.content.xml` (seed data), update `filter.xml` |
+| `core` | `tickets/enums/*`, `tickets/models/*`, `tickets/services/*` |
+| `core` (test) | `tickets/models/TicketModelTest.java`, `tickets/services/TicketRepositoryImplTest.java` |
+| `ui.apps` (later) | `ticket-detail` and `ticket-list` HTL components bound to resource types |
+
+This design keeps ticket data cleanly separated from the site page tree (`/content/stms/us/en`), supports dynamic reads via Sling Models + OSGi repository, and scales to servlets, workflows, or headless APIs without schema changes.

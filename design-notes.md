@@ -1,204 +1,178 @@
-# Design Notes — STMS
+# Design Notes
 
-Architecture and design decisions for the Support Ticket Management System.
+## Architecture Overview (frontend, backend, database)
 
----
-
-## 1. Architecture overview
+STMS follows the standard AEM Cloud Service layered architecture:
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  AEM Author (localhost:4502)                                    │
-│                                                                 │
-│  ┌──────────────┐    HTL + clientlibs    ┌──────────────────┐ │
-│  │ ui.apps      │ ◄────────────────────── │ Pages (ui.content)│ │
-│  │ components   │                         └──────────────────┘ │
-│  └──────┬───────┘                                               │
-│         │ Sling Models adapt                                    │
-│         ▼                                                       │
-│  ┌──────────────┐    OSGi @OSGiService   ┌──────────────────┐  │
-│  │ core         │ ◄───────────────────── │ TicketRepository │  │
-│  │ Sling Models │                        │ (impl)           │  │
-│  └──────┬───────┘                        └────────┬─────────┘  │
-│         │                                         │             │
-│         │ POST forms                              │ service user│
-│         ▼                                         ▼             │
-│  ┌──────────────┐                        ┌──────────────────┐  │
-│  │ Servlets     │ ──────────────────────►│ JCR Repository │  │
-│  │ /bin/stms/*  │                        │ /content/stms/ │  │
-│  └──────────────┘                        │ tickets        │  │
-│                                           └──────────────────┘  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Presentation (ui.apps + ui.content)                      │
+│  HTL components, Granite dialogs, clientlibs, sample pages  │
+├─────────────────────────────────────────────────────────────┤
+│  Application (core)                                         │
+│  Sling Models, OSGi TicketRepository, Sling Servlets        │
+├─────────────────────────────────────────────────────────────┤
+│  Infrastructure (ui.config)                                 │
+│  Repoinit, service users, Oak index, logging                │
+├─────────────────────────────────────────────────────────────┤
+│  Data (JCR / Oak)                                           │
+│  /content/stms/tickets — ticket + comment nodes             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
----
+**Request flow (write):** HTL form → POST servlet → `TicketRepository` → service-user JCR session → redirect.  
+**Request flow (read):** Page request → Sling Model → `TicketRepository` / resource adaptation → HTL render.
 
-## 2. Key design decisions
-
-### DD-1 — JCR as ticket store (not external DB)
-
-**Decision:** Persist tickets as `nt:unstructured` nodes under `/content/stms/tickets`.
-
-**Rationale:**
-- Native AEM content model; no additional infrastructure
-- QueryBuilder + Oak index for listing/filtering
-- Replication-ready if publish views are added later
-
-**Trade-off:** Not ideal for very high-volume ticketing; acceptable for author-side support use case.
+Supplementary detail: `data-model.md`, `ui-flow.md`
 
 ---
 
-### DD-2 — Repository pattern with service-user writes
+## Frontend Design
 
-**Decision:** All mutations go through `TicketRepository` using subservice `stms-ticket-write`.
+### Technology
 
-**Rationale:**
-- Centralizes validation and ID generation
-- Servlet layer stays thin (parse params → delegate → redirect)
-- Service user avoids elevating the end-user's session for writes
+- **HTL** for all component markup (`ui.apps/.../components/`)
+- **Granite/Coral 3** dialogs (`_cq_dialog/.content.xml`)
+- **Component clientlibs** for ticket-specific JS/CSS
+- **Shared tokens** in `clientlib-base` (`tokens.css`, `badges.css`, `forms.css`, `alerts.css`)
+- **App shell** (`appshell`) wraps ticket pages with sidebar + top bar
 
-**Implementation:**
-- `stms-ticket-service` created via repoinit
-- Mapping: `stms.core:stms-ticket-write=[stms-ticket-service]`
+### Components
 
----
-
-### DD-3 — Form POST + redirect (not JSON REST)
-
-**Decision:** Write endpoints accept `application/x-www-form-urlencoded` and respond with HTTP redirects.
-
-**Rationale:**
-- Matches AEM authoring patterns and CSRF token handling
-- Simple HTL form integration without SPA framework
-- Error state preserved via query parameters
-
-**Trade-off:** Not headless-friendly; a JSON API can be added later as a separate layer.
-
----
-
-### DD-4 — Sling Models split by adaptables
-
-| Model | Adaptable | Reason |
+| Component | Resource type | Role |
 |---|---|---|
-| `TicketModel`, `TicketCommentModel` | `Resource` | Content-structure nodes; used in list iteration |
-| `TicketListModel`, `TicketCreateModel`, etc. | `SlingHttpServletRequest` | Need request params, page context, OSGi services |
+| `appshell` | `stms/components/appshell` | Layout chrome, nav |
+| `ticketlist` | `stms/components/ticketlist` | List, filters, sort |
+| `ticketcreate` | `stms/components/ticketcreate` | Create form |
+| `ticketdetail` | `stms/components/ticketdetail` | Read single ticket |
+| `ticketedit` | `stms/components/ticketedit` | Update form |
+| `ticketcomments` | `stms/components/ticketcomments` | Comment thread + form |
 
----
+### UX conventions
 
-### DD-5 — Comments as child nodes (not JSON array property)
+- Status badges: `open`, `progress`, `resolved`, `closed`
+- Priority indicators: `high`, `medium`, `low`
+- Flash messages via query params: `created`, `updated`, `commentAdded`, `error`
+- Forms POST to `/bin/stms/ticket/*` with `:cq_csrf_token`
 
-**Decision:** Each comment is a child node under `comments/` with `sling:resourceType=stms/tickets/comment`.
+### Pages (ui.content)
 
-**Rationale:**
-- Aligns with Sling Model `@PostConstruct` child iteration in `TicketModel`
-- Supports per-comment metadata (author, date) without parsing JSON
-- Comment IDs: `comment-yyyyMMdd-HHmmss-NNN`
-
----
-
-### DD-6 — Ticket ID as node name
-
-**Decision:** Node name = `ticketId` (e.g. `TICKET-0001`).
-
-**Rationale:**
-- Human-readable URLs and repository paths
-- Sequential ID generation scans sibling node names
-- `ticketId` property duplicates node name for QueryBuilder indexing
-
----
-
-### DD-7 — Component-scoped clientlibs
-
-**Decision:** Ticket components ship dedicated `clientlibs/` for JS/CSS; shared tokens in `clientlib-base`.
-
-**Rationale:**
-- Avoids loading ticket JS on non-ticket pages
-- Design tokens (`tokens.css`, `badges.css`, `forms.css`) reused across components
-
----
-
-### DD-8 — App shell as layout wrapper
-
-**Decision:** `stms/components/appshell` wraps ticket page content with sidebar + top bar.
-
-**Rationale:**
-- Single place for navigation and branding
-- Dialog-configurable paths (`ticketsListPage`, `createTicketPage`)
-- `AppShellModel` integrates `TicketRepository` for nav badge counts (if configured)
-
----
-
-## 3. Module responsibilities
-
-| Module | Responsibility |
+| Page | Path |
 |---|---|
-| `core` | OSGi services, Sling Models, servlets, enums, unit tests |
-| `ui.apps` | HTL, Granite dialogs, component clientlibs, i18n |
-| `ui.config` | Repoinit, service-user mapping, Oak index, logging, CORS |
-| `ui.content` | Editable templates, policies, sample ticket pages |
-| `ui.frontend` | Webpack site bundle → `clientlib-site` |
-| `dispatcher` | Cache, filters, vhosts (default archetype) |
+| List | `/content/stms/us/en/tickets` |
+| Create | `/content/stms/us/en/tickets/create-ticket` |
+| Edit | `/content/stms/us/en/tickets/edit-ticket` |
+| Detail | `/content/stms/us/en/ticket-detail` |
 
 ---
 
-## 4. Security model
+## Backend Design
 
-| Layer | Mechanism |
+### Module: `core`
+
+| Layer | Classes |
 |---|---|
-| **Authentication** | AEM author login (Sling authentication) |
-| **Authorization (writes)** | Service user ACL on `/content/stms/tickets` |
-| **CSRF** | Granite CSRF token (`:cq_csrf_token`) on forms |
-| **Input validation** | Server-side in `TicketRepositoryImpl`; client-side in component JS |
-| **Servlet methods** | POST only for write endpoints; GET returns 405 |
+| **Repository** | `TicketRepository`, `TicketRepositoryImpl` |
+| **DTOs** | `TicketCreateRequest`, `TicketUpdateRequest`, `TicketCommentCreateRequest`, `TicketSearchCriteria`, `*Result` |
+| **Models** | `TicketModel`, `TicketListModel`, `TicketDetailModel`, `TicketCreateModel`, `TicketEditModel`, `TicketCommentsModel`, `AppShellModel` |
+| **Servlets** | `TicketCreateServlet`, `TicketEditServlet`, `TicketCommentServlet` |
+| **Enums** | `TicketStatus`, `TicketPriority` |
+
+### Patterns
+
+- **Repository pattern** — all JCR writes centralized in `TicketRepositoryImpl`
+- **Thin servlets** — parse params, delegate, redirect (no JCR in servlet)
+- **Service user writes** — subservice `stms-ticket-write`; never `loginAdministrative`
+- **OSGi DS R6** — `@Component`, `@Reference` / `@OSGiService`
+- **QueryBuilder** — list/search in repository; predicates on `sling:resourceType`, filters
+
+### Security
+
+- AEM author session for authentication
+- CSRF on forms
+- POST-only write endpoints (GET → 405)
+- Server-side validation in repository (length, enums)
 
 ---
 
-## 5. Search and indexing
+## Database Design
 
-- **Query API:** AEM QueryBuilder via `TicketRepositoryImpl.findTickets`
-- **Index:** `stms-ticket-index` (Lucene, async) on `sling:resourceType`, `status`, `assignee`, `createdDate`
-- **Default sort:** `createdDate` descending (newest first)
-- **Filters:** status, assignee, priority, creator (via `jcr:createdBy` predicate)
+STMS uses **JCR (Oak)** as the data store — no external RDBMS.
+
+### Root path
+
+`/content/stms/tickets` — `sling:Folder` / `stms/tickets/folder`
+
+### Ticket node
+
+```
+/content/stms/tickets/TICKET-0001
+  sling:resourceType = stms/tickets/ticket
+  ticketId, title, description, status, priority, assignee, createdDate
+  jcr:createdBy (system)
+  comments/
+```
+
+### Comment nodes
+
+```
+/content/stms/tickets/TICKET-0001/comments/comment-{timestamp}-{seq}
+  sling:resourceType = stms/tickets/comment
+  commentId, author, text, createdDate
+```
+
+### Indexing
+
+Oak Lucene index `stms-ticket-index` on: `sling:resourceType`, `status`, `assignee`, `createdDate`
+
+### ID generation
+
+- Tickets: `TICKET-NNNN` (scan siblings)
+- Comments: `comment-yyyyMMdd-HHmmss-NNN`
+
+Full schema: `data-model.md`
 
 ---
 
-## 6. UI / UX conventions
+## Validation Strategy
 
-| Element | Convention |
+| Layer | Responsibility |
 |---|---|
-| Status badge CSS | `open`, `progress`, `resolved`, `closed` (from `TicketModel.getStatusBadgeClass()`) |
-| Priority indicator | `high`, `medium`, `low` (from `getPriorityLevelClass()`) |
-| Assignee avatar | Initials + color variant 1–4 from email hash |
-| Success flash | Query params: `created=true`, `updated=true`, `commentAdded=true` |
-| Error flash | `error` query param with URL-encoded message |
+| **Client (JS)** | Required fields on create form before submit |
+| **Servlet** | Parse parameters; no business rules |
+| **Repository** | Title required (≤200), description required, valid enums, comment ≤5000 |
+| **JCR** | `nt:unstructured` nodes; types enforced in Java only |
 
 ---
 
-## 7. Cloud Service compliance
+## Error Handling Strategy
 
-- No writes to `/libs`
-- No `Session.loginAdministrative`
-- OSGi DS R6 annotations (`@Component`, `@Reference`)
-- Deploy via Cloud Manager pipeline
-- AEM SDK API pinned in root `pom.xml`
-- Java 21 (`.cloudmanager/java-version`)
-
----
-
-## 8. Alternatives considered
-
-| Alternative | Why not chosen (baseline) |
+| Failure | User experience |
 |---|---|
-| Content Fragments for tickets | More suited to structured headless content; JCR nodes simpler for CRUD |
-| SPA (React) for ticket UI | Adds complexity; HTL sufficient for author tool |
-| Sling POST Servlet JSON API | Deferred; form POST meets current UI needs |
-| Granite Workflow on create | Out of scope; available via `aem-workflow` skill for future |
+| Validation error | Redirect to form with `?error=` and preserved fields |
+| Missing folder / service user | Redirect with specific error message |
+| Not found on update | Error message; no partial write |
+| Success | Redirect to detail with flash param |
+
+No JSON error bodies — HTML form flow only.
 
 ---
 
-## 9. Related documents
+## Testing Strategy Link
 
-- `data-model.md` — JCR schema detail
-- `api-contract.md` — Servlet contracts
-- `ui-flow.md` — User journeys
-- `implementation-plan.md` — Phased delivery
+See `test-strategy.md` for unit, integration, E2E, and manual smoke coverage.
+
+Key test classes: `TicketRepositoryImpl*Test`, `*ServletTest`, `TicketCreateIT`.
+
+---
+
+## Key design decisions
+
+| ID | Decision | Rationale |
+|---|---|---|
+| DD-1 | JCR nodes, not Content Fragments | Simpler CRUD for operational tickets |
+| DD-2 | Form POST + redirect, not JSON API | AEM authoring + CSRF patterns |
+| DD-3 | Service user for writes | Least privilege; Cloud Service best practice |
+| DD-4 | Comments as child nodes | Audit trail; Sling Model iteration |
+
+Design plan artifact: `ai-prompts/ticket_jcr_schema_design_24dcc4d5.plan.md`

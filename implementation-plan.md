@@ -1,166 +1,141 @@
-# Implementation Plan — STMS
-
-Phased delivery plan for the Support Ticket Management System on AEM Cloud Service.
-
----
+# Implementation Plan
 
 ## Overview
 
+Build STMS as a phased vertical slice on AEM Cloud Service archetype: JCR data layer first, read UI, write servlets, app shell and styling, then hardening and documentation. Each phase has testable exit criteria before moving on.
+
 | Phase | Focus | Status |
 |---|---|---|
-| **Phase 0** | Project bootstrap | Complete |
-| **Phase 1** | Data layer & repository | Complete |
-| **Phase 2** | Read components (list, detail) | Complete |
-| **Phase 3** | Write flows (create, edit, comment) | Complete |
-| **Phase 4** | App shell & visual design | Complete |
-| **Phase 5** | Hardening & tests | Complete |
-| **Phase 6** | Future enhancements | Planned |
+| 0 | Bootstrap (archetype, AGENTS.md, repoinit) | Complete |
+| 1 | Data layer (`TicketRepository`, models, index) | Complete |
+| 2 | Read UI (list, detail) | Complete |
+| 3 | Write flows (create, edit, comment) | Complete |
+| 4 | App shell + visual design | Complete |
+| 5 | Tests + documentation + IT scaffold | Complete |
+| 6 | Stretch (E2E, workflow, headless API) | Planned |
 
 ---
 
-## Phase 0 — Project bootstrap
+## Task Breakdown
 
-**Goal:** Establish AEM Cloud Service archetype project with module structure and AI guidance.
+### Phase 0 — Bootstrap
 
 | Task | Module | Output |
 |---|---|---|
-| Generate / configure Maven multi-module project | root | `pom.xml`, modules |
-| Create `AGENTS.md` and `.cursorrules` | root | AI + developer conventions |
-| Configure repoinit for DAM and service user | `ui.config` | `RepositoryInitializer~stms.cfg.json` |
-| Sample site and templates | `ui.content` | `/content/stms`, `/conf/stms` |
+| Configure Maven multi-module project | root | `pom.xml` |
+| Add `AGENTS.md`, `.cursorrules` | root | AI/dev guidance |
+| Repoinit + DAM path | `ui.config` | `RepositoryInitializer~stms.cfg.json` |
+| Sample site structure | `ui.content` | `/content/stms`, `/conf/stms` |
 
-**Exit criteria:** `mvn clean install` succeeds; package installs on local SDK.
+### Phase 1 — Data layer
 
----
-
-## Phase 1 — Data layer & repository
-
-**Goal:** JCR schema, Sling Models, OSGi repository, search index.
-
-| Step | Task | Files |
+| Task | Module | Output |
 |---|---|---|
-| 1.1 | Define ticket JCR structure | `TicketModel`, `TicketCommentModel`, `TicketCommentsContainerModel` |
-| 1.2 | Define enums | `TicketStatus`, `TicketPriority` |
-| 1.3 | Implement `TicketRepository` | `TicketRepository.java`, `TicketRepositoryImpl.java` |
-| 1.4 | Service-user mapping | `ServiceUserMapperImpl.amended~stms-tickets.cfg.json` |
-| 1.5 | Oak index for queries | `_oak_index/stms-ticket-index/` |
-| 1.6 | Unit tests | `TicketRepositoryImpl*Test.java`, `TicketModelTest.java` |
+| JCR schema + Sling Models | `core` | `TicketModel`, `TicketCommentModel`, enums |
+| `TicketRepository` + impl | `core` | QueryBuilder, create/update/comment |
+| Service user mapping | `ui.config` | `stms-ticket-write` → `stms-ticket-service` |
+| Oak index | `ui.config` | `stms-ticket-index` |
+| Unit tests | `core` | `TicketRepositoryImpl*Test`, `TicketModelTest` |
 
-**Exit criteria:** Create/read tickets via repository tests; QueryBuilder returns filtered results.
+### Phase 2 — Read UI
 
----
-
-## Phase 2 — Read components
-
-**Goal:** List and detail views without write servlets.
-
-| Step | Task | Files |
+| Task | Module | Output |
 |---|---|---|
-| 2.1 | `TicketListModel` with filters/sort | `core/.../TicketListModel.java` |
-| 2.2 | `ticketlist` HTL + dialog | `ui.apps/.../ticketlist/` |
-| 2.3 | `TicketDetailModel` | `core/.../TicketDetailModel.java` |
-| 2.4 | `ticketdetail` HTL + dialog | `ui.apps/.../ticketdetail/` |
-| 2.5 | Sample pages | `ui.content/.../tickets/`, `ticket-detail/` |
-| 2.6 | Unit tests | `TicketListModelTest`, `TicketDetailModelTest` |
+| `TicketListModel` + `ticketlist` | `core`, `ui.apps` | Filters, sort, HTL |
+| `TicketDetailModel` + `ticketdetail` | `core`, `ui.apps` | Detail by `ticketId` |
+| Sample pages | `ui.content` | tickets list, ticket-detail |
 
-**Exit criteria:** AC-2 and AC-3 pass on local author.
+### Phase 3 — Write flows
 
----
-
-## Phase 3 — Write flows
-
-**Goal:** Create, update, and comment via servlets + forms.
-
-| Step | Task | Files |
+| Task | Module | Output |
 |---|---|---|
-| 3.1 | DTOs and result types | `TicketCreateRequest`, `TicketUpdateRequest`, `TicketCommentCreateRequest`, `*Result` |
-| 3.2 | Extend repository writes | `createTicket`, `updateTicket`, `addComment` in `TicketRepositoryImpl` |
-| 3.3 | Servlets | `TicketCreateServlet`, `TicketEditServlet`, `TicketCommentServlet` |
-| 3.4 | Form components | `ticketcreate`, `ticketedit`, `ticketcomments` |
-| 3.5 | Edit page content | `ui.content/.../edit-ticket/` |
-| 3.6 | Servlet + repository tests | `*ServletTest`, `TicketRepositoryImplCreateTest`, etc. |
+| DTOs + validation | `core` | `TicketCreateRequest`, `*Result` types |
+| Servlets | `core` | `/bin/stms/ticket/create|update|comment` |
+| Form components | `ui.apps` | `ticketcreate`, `ticketedit`, `ticketcomments` |
+| Servlet tests | `core` | `*ServletTest` |
 
-**Exit criteria:** AC-1, AC-4, AC-5, AC-6 pass end-to-end on local author.
+### Phase 4 — Shell & design
 
----
-
-## Phase 4 — App shell & visual design
-
-**Goal:** Consistent navigation and styling.
-
-| Step | Task | Files |
+| Task | Module | Output |
 |---|---|---|
-| 4.1 | `AppShellModel` + nav items | `core/.../shell/` |
-| 4.2 | `appshell` component | `ui.apps/.../appshell/` |
-| 4.3 | Design tokens & base CSS | `clientlib-base/css/tokens.css`, etc. |
-| 4.4 | Component clientlibs | `ticket*/clientlibs/` |
-| 4.5 | Wrap ticket pages in appshell | `ui.content` page roots |
+| `AppShellModel` + `appshell` | `core`, `ui.apps` | Sidebar, top bar |
+| Design tokens | `ui.apps` | `clientlib-base/css/tokens.css` |
+| Wrap pages in appshell | `ui.content` | All ticket pages |
 
-**Exit criteria:** AC-7 pass; visual consistency across ticket pages.
+### Phase 5 — Hardening
+
+| Task | Output |
+|---|---|
+| Full unit suite | 18+ tests in `core` |
+| `TicketCreateIT` | `it.tests` integration scaffold |
+| Assessment docs | Root `*.md`, `ai-prompts/history/` |
+| Dispatcher validate | `validate.sh src` |
 
 ---
 
-## Phase 5 — Hardening & tests
+## Milestones
 
-**Goal:** Quality gates and documentation.
-
-| Step | Task | Output |
+| Milestone | Date (target) | Exit criteria |
 |---|---|---|
-| 5.1 | Complete unit test suite | 18+ tests in `core/src/test` |
-| 5.2 | Validation rules enforced | Title/comment length, enum checks |
-| 5.3 | AI workflow documentation | `.res.local/documents/tool-workflow.md` |
-| 5.4 | Project documentation | Root `*.md` files |
-| 5.5 | Dispatcher validation | `dispatcher/bin/validate.sh src` |
-
-**Exit criteria:** AC-9 pass; docs complete.
+| M1 — Schema + repository | 2026-08-31 | `mvn test -pl core`; plan todos complete |
+| M2 — List + detail UI | 2026-08-31 | Pages render sample tickets |
+| M3 — Full CRUD + comments | 2026-09-01 | End-to-end author smoke pass |
+| M4 — App shell + styling | 2026-09-01 | Consistent nav and tokens |
+| M5 — Assessment package | 2026-09-01 | Docs + prompt history + IT compile |
 
 ---
 
-## Phase 6 — Future enhancements (planned)
+## AI Usage Plan
 
-| Item | Effort | Dependencies |
+| Phase | Cursor mode | Skills / context |
 |---|---|---|
-| Cypress E2E for ticket flows | Medium | `ui.tests` against running AEM |
-| Integration tests (HTTP) | Medium | `it.tests` |
-| Assignee picker (user/group dialog) | Medium | Granite user picker |
-| Granite Workflow for approvals | Large | `aem-workflow` skill |
-| Headless JSON API | Medium | New Sling servlets or GraphQL |
-| Ticket delete / archive | Small | Repository + UI |
+| Requirements | Ask | `STMS-propmts-history.md`, gap-analysis prompts |
+| Design | Plan | JCR schema plan file; `design-notes.md` draft |
+| Implementation | Agent | `create-component`, reference `TicketCreateServlet` |
+| Testing | Agent | "Match `TicketRepositoryImplCreateTest` style" |
+| Debugging | Agent + MCP | `debugging-notes.md`, AEM MCP logs |
+| Review | Ask | `code-review-notes.md` checklist |
+| Documentation | Agent | Restructure per assessment template |
+
+**Rules I followed:**
+
+- Attach `@` reference files and module scope in every implementation prompt
+- Run `mvn test -pl core` after Java changes
+- Do not let AI edit plan files during implementation
+- Log prompts with accept/reject in `ai-prompts/history/`
 
 ---
 
-## Module dependency graph
+## Risks
 
-```text
-ui.content  ──depends on──►  ui.apps  ──embeds──►  core
-ui.config   ──standalone OSGi configs
-ui.frontend ──build output──►  ui.apps (clientlib-site)
-all         ──aggregates──►  ui.apps, ui.config, ui.content, core
-dispatcher  ──independent──►  Cloud Manager dispatcher pipeline
-```
-
----
-
-## Deploy sequence (local SDK)
-
-```bash
-# Full deploy
-mvn clean install -PautoInstallSinglePackage
-
-# Iterative backend
-mvn clean install -pl core -PautoInstallBundle
-
-# UI only
-mvn clean install -pl ui.apps -PautoInstallPackage
-```
+| Risk | Impact | Likelihood |
+|---|---|---|
+| Service user / repoinit not deployed | Writes fail | Medium |
+| QueryBuilder empty list (wrong resourceType) | UI appears broken | Medium |
+| Over-reliance on `.agents/skills` without review | Generic code | Medium |
+| Documentation written retrospectively | Weak authenticity signal | High (addressed in prompt history) |
+| No E2E tests in MVP | Regression on UI only caught manually | Medium |
+| CSRF token missing on forms | POST 403 | Low |
 
 ---
 
-## Risk register
+## Mitigation
 
 | Risk | Mitigation |
 |---|---|
-| Service user ACL missing | Repoinit in `ui.config`; verify via MCP `diagnose-osgi-bundle` |
-| QueryBuilder performance | Oak index `stms-ticket-index` |
-| CSRF failures on forms | Include `:cq_csrf_token` in HTL forms |
-| Cloud Service API drift | Pin AEM SDK API in root `pom.xml`; run analyser |
+| Service user | Deploy `ui.config` with full package; document in `debugging-notes.md` |
+| Empty list | Enforce `sling:resourceType` on create; unit test QueryBuilder predicates |
+| Skill over-reliance | Explicit "match existing file X" prompts; manual diff review |
+| Doc authenticity | `ai-prompts/history/` with iteration, rejections, MCP/debug evidence |
+| No E2E | `TicketCreateIT` + manual smoke checklist in `acceptance-criteria.md` |
+| CSRF | Granite token in all HTL forms; servlet tests for POST-only |
+
+---
+
+## Deploy commands
+
+```bash
+mvn clean install -PautoInstallSinglePackage
+mvn clean install -pl core -PautoInstallBundle
+mvn clean verify -pl it.tests -Plocal
+```

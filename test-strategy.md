@@ -1,227 +1,131 @@
-# Test Strategy — STMS
+# Test Strategy
 
-Testing approach, coverage map, and execution guide for the Support Ticket Management System.
+## Test Scope
 
----
+In scope for STMS baseline:
 
-## 1. Testing pyramid
+- Ticket repository CRUD and validation (`TicketRepositoryImpl`)
+- Sling Models (list, detail, create, edit, comments, app shell)
+- Servlet redirect behavior for create, update, comment
+- Integration: POST create servlet against running AEM author
+- Manual author smoke for full UI flow
 
-```text
-                    ┌─────────────┐
-                    │  UI E2E     │  ui.tests (Cypress) — planned / pipeline
-                    │  (few)      │
-                ┌───┴─────────────┴───┐
-                │  Integration      │  it.tests — Cloud Manager step
-                │  (some)           │
-            ┌───┴───────────────────┴───┐
-            │  Unit tests (many)          │  core — JUnit 5 + AEM Mock
-            └─────────────────────────────┘
-```
+Out of scope (MVP):
 
-| Layer | Module | Runner | When |
-|---|---|---|---|
-| **Unit** | `core` | `mvn test -pl core` | Every change to Java logic |
-| **Integration** | `it.tests` | Cloud Manager / manual against AEM | API and content flows |
-| **UI E2E** | `ui.tests` | Cypress against running AEM | Critical user journeys |
-| **Build** | all | `mvn clean install` | AEM analyser, package validation |
-| **Dispatcher** | `dispatcher` | `./bin/validate.sh src` | Dispatcher config changes |
-| **Manual smoke** | local SDK | Browser on author | Post-deploy verification |
+- Publish-tier flows
+- Cypress E2E (scaffold only in `ui.tests`)
+- Load/performance testing
+- Security penetration testing
 
 ---
 
-## 2. Unit tests (core)
+## Unit Tests
 
-### Framework stack
+**Module:** `core`  
+**Framework:** JUnit 5, WCM.io AEM Mock, Mockito  
+**Command:** `mvn test -pl core`
 
-| Library | Purpose |
+| Area | Test classes |
 |---|---|
-| JUnit 5 | Test runner |
-| WCM.io AEM Mock (`io.wcm.testing.aem-mock.junit5`) | Sling/AEM context |
-| Mockito | Mocking collaborators |
-| `AemContext` | In-memory resource tree |
+| Repository read | `TicketRepositoryImplTest` |
+| Repository create | `TicketRepositoryImplCreateTest` |
+| Repository update | `TicketRepositoryImplUpdateTest` |
+| Repository comment | `TicketRepositoryImplAddCommentTest` |
+| Models | `TicketModelTest`, `TicketListModelTest`, `TicketDetailModelTest`, `TicketCommentsModelTest` |
+| Servlets | `TicketCreateServletTest`, `TicketEditServletTest`, `TicketCommentServletTest` |
+| Shell | `AppShellModelTest` |
+| Enums | `TicketStatusTest` |
 
-### Coverage map
+**Conventions:**
 
-| Area | Test classes | What is verified |
-|---|---|---|
-| **Repository — read** | `TicketRepositoryImplTest` | `getTicket`, `findTickets`, QueryBuilder predicates |
-| **Repository — create** | `TicketRepositoryImplCreateTest` | Node creation, properties, comments child, ID generation |
-| **Repository — update** | `TicketRepositoryImplUpdateTest` | Property updates, not-found handling |
-| **Repository — comment** | `TicketRepositoryImplAddCommentTest` | Comment node creation, container lazy-create |
-| **Models** | `TicketModelTest`, `TicketListModelTest`, `TicketDetailModelTest`, `TicketCommentsModelTest` | Adaptation, getters, comment sorting, badge classes |
-| **Shell** | `AppShellModelTest` | Nav items, page path resolution |
-| **Servlets** | `TicketCreateServletTest`, `TicketEditServletTest`, `TicketCommentServletTest` | POST handling, redirect URLs, error paths |
-| **Enums** | `TicketStatusTest` | `fromValue()` mapping |
-| **Scaffolding** | `HelloWorldModelTest`, `LoggingFilterTest`, etc. | Archetype boilerplate |
+- Arrange ticket nodes under `/content/stms/tickets` with correct `sling:resourceType`
+- Assert validation messages match `api-contract.md`
+- Add/update tests when repository or servlet behavior changes
 
-### Run commands
+---
+
+## Component Tests
+
+Component-level behavior is covered indirectly:
+
+| Layer | Approach |
+|---|---|
+| HTL + Model binding | `*ModelTest` with `AemContext` |
+| Client-side validation | Manual smoke + future Cypress |
+| Dialog config | Manual author verification |
+
+No separate HTL unit test framework — AEM Mock models are the component contract tests.
+
+---
+
+## API / Integration Tests
+
+**Module:** `it.tests`  
+**Framework:** JUnit 4, AEM Cloud Testing Clients, `CQAuthorClassRule`  
+**Command:** `mvn clean verify -pl it.tests -Plocal` (requires AEM on `4502` + deployed packages)
+
+| Test | What it verifies |
+|---|---|
+| `CreatePageIT` | Archetype baseline — page exists |
+| `GetPageIT` | Archetype baseline — page GET |
+| `TicketCreateIT` | POST `/bin/stms/ticket/create` → 302 + JCR node + comments child |
+
+**Prerequisites for `TicketCreateIT`:**
 
 ```bash
-# All core tests
-mvn test -pl core
-
-# Single test class
-mvn test -pl core -Dtest=TicketRepositoryImplCreateTest
-
-# With coverage (if jacoco configured)
-mvn test -pl core
-```
-
-### Unit test conventions
-
-1. **Arrange** ticket nodes under `/content/stms/tickets` in `AemContext`
-2. **Set** `sling:resourceType` to match production values
-3. **Inject** `TicketRepositoryImpl` with context resolver factory for write tests
-4. **Assert** JCR properties and result DTOs (`TicketCreateResult.isSuccess()`, etc.)
-
-### Required coverage for changes
-
-| Change type | Minimum test update |
-|---|---|
-| New repository method | New test method or class in `TicketRepositoryImpl*Test` |
-| New validation rule | Test success + failure message |
-| New servlet parameter | Servlet test for redirect URL |
-| New model property | Model test for getter / HTL-exposed value |
-| Enum value added | `TicketStatusTest` or `TicketPriority` equivalent |
-
----
-
-## 3. Integration tests (it.tests)
-
-### Purpose
-
-Validate HTTP-level behavior against a **running** AEM author/publish instance using AEM Testing Clients.
-
-### Scope (recommended)
-
-| Test | Endpoint / page | Assertion |
-|---|---|---|
-| Create ticket POST | `/bin/stms/ticket/create` | 302 redirect; node exists in JCR |
-| Update ticket POST | `/bin/stms/ticket/update` | Properties updated |
-| Add comment POST | `/bin/stms/ticket/comment` | Comment node created |
-| List page | `/content/stms/us/en/tickets.html` | 200 OK |
-| Detail page | `/content/stms/us/en/ticket-detail.html?ticketId=...` | 200 OK with ticket title |
-
-### Execution
-
-- Cloud Manager **Custom Functional Testing** step in full stack pipeline
-- Local: deploy package, then run `it.tests` module against `localhost:4502`
-
----
-
-## 4. UI tests (ui.tests)
-
-### Framework
-
-- **Cypress** in `ui.tests/test-module/`
-- Cloud Manager **Custom UI Testing** step
-
-### Recommended E2E scenarios
-
-| ID | Scenario | Steps |
-|---|---|---|
-| E2E-1 | Create ticket | Navigate to create → fill form → submit → see detail |
-| E2E-2 | List filter | Open list → filter by status → verify row count |
-| E2E-3 | Add comment | Open detail → submit comment → see in thread |
-| E2E-4 | Edit ticket | Open edit → change status → save → verify on detail |
-| E2E-5 | App shell nav | Click sidebar links → correct pages load |
-
-### Execution (local)
-
-```bash
-# Requires AEM running with STMS content deployed
-cd ui.tests/test-module
-npm install
-npm test
+mvn clean install -PautoInstallSinglePackage
 ```
 
 ---
 
-## 5. Manual smoke test checklist
+## Edge Case Tests
 
-Run after `mvn clean install -PautoInstallSinglePackage` on local author.
-
-| # | Step | Expected |
-|---|---|---|
-| 1 | Open `/content/stms/us/en/tickets.html` | List renders; shell visible |
-| 2 | Click Create ticket | Form loads |
-| 3 | Submit valid ticket | Redirect to detail; `TICKET-*` in URL |
-| 4 | CRX DE: `/content/stms/tickets` | New node with correct properties |
-| 5 | Add comment on detail | Comment in thread after redirect |
-| 6 | Edit ticket status | Detail shows updated status |
-| 7 | Filter list by status | Filtered results |
-| 8 | OSGi console: `stms.core` | Bundle Active |
-
----
-
-## 6. AI-assisted testing workflow
-
-| Step | AI role | Human/agent action |
-|---|---|---|
-| 1 | Draft unit test from existing pattern | "Add test for X like `TicketRepositoryImplCreateTest`" |
-| 2 | Run `mvn test -pl core` | Agent or developer executes |
-| 3 | Fix failures | Feed stack trace to Cursor Agent |
-| 4 | MCP diagnostics | `user-aem-local-author` logs if runtime failure |
-| 5 | Review diff | Ensure tests assert behavior, not implementation details |
-
-See `.res.local/documents/tool-workflow.md` for full AI workflow.
-
----
-
-## 7. Validation gates (CI / pre-merge)
-
-| Gate | Command | Blocking |
-|---|---|---|
-| Unit tests | `mvn test -pl core` | Yes |
-| Full build | `mvn clean install` | Yes |
-| AEM analyser | Part of `mvn install` | Yes |
-| Dispatcher validate | `cd dispatcher && ./bin/validate.sh src` | Yes (if dispatcher changed) |
-| Integration tests | Cloud Manager pipeline | Yes (in pipeline) |
-| UI tests | Cloud Manager pipeline | Yes (in pipeline) |
-
----
-
-## 8. Test data management
-
-| Approach | Detail |
+| Edge case | Unit test coverage |
 |---|---|
-| **Unit tests** | Self-contained `AemContext` resources; no external AEM |
-| **Integration / E2E** | Use dedicated test tickets (`TICKET-TEST-*`) or cleanup in teardown |
-| **Local manual** | Sample content in `ui.content`; safe to create tickets on author |
-| **Production** | Never run destructive tests against production |
+| Blank title on create | `TicketRepositoryImplCreateTest` |
+| Invalid priority | `TicketRepositoryImplCreateTest` |
+| Ticket not found on update | `TicketRepositoryImplUpdateTest` |
+| Blank comment text | `TicketRepositoryImplAddCommentTest` |
+| Comment length > 5000 | `TicketRepositoryImplAddCommentTest` |
+| GET on servlet → 405 | `TicketCreateServletTest` |
+| Redirect URL on success | `TicketCreateServletTest` |
+| Empty list / wrong resourceType | `TicketRepositoryImplTest` (manual + query predicates) |
 
 ---
 
-## 9. Defect classification
+## Tests Not Covered (and why)
 
-| Severity | Example | Response |
+| Gap | Reason | Planned follow-up |
 |---|---|---|
-| **Critical** | Cannot create tickets; bundle inactive | Block release; fix + regression test |
-| **High** | Validation bypass; wrong data persisted | Fix before merge |
-| **Medium** | UI styling issue; filter edge case | Fix in sprint |
-| **Low** | Copy/text issues | Backlog |
+| Cypress E2E for full UI flow | Time; IT covers servlet layer | Phase 6 — `ui.tests` spec |
+| `TicketEditIT` / `TicketCommentIT` | Scaffold priority was create path first | Add after `TicketCreateIT` stable |
+| Publish-tier rendering | MVP is author-only | Future publish read views |
+| Dispatcher cache for ticket pages | No publish traffic yet | When publish enabled |
+| Concurrent ticket ID collision | Low risk on author; sequential IDs | Load test if scale needed |
+| Granite Workflow steps | Out of MVP scope | `aem-workflow` skill phase |
 
 ---
 
-## 10. Traceability matrix
+## Manual smoke checklist
 
-| Acceptance ID | Unit test | Integration | E2E | Manual |
-|---|---|---|---|---|
-| AC-1.x | `TicketRepositoryImplCreateTest` | Create POST | E2E-1 | Smoke #3–4 |
-| AC-2.x | `TicketListModelTest` | List page GET | E2E-2 | Smoke #1, #7 |
-| AC-3.x | `TicketDetailModelTest` | Detail GET | E2E-1 | Smoke #3 |
-| AC-4.x | `TicketCreateServletTest` | Create POST | E2E-1 | Smoke #2–3 |
-| AC-5.x | `TicketEditServletTest`, `UpdateTest` | Update POST | E2E-4 | Smoke #6 |
-| AC-6.x | `AddCommentTest`, `CommentServletTest` | Comment POST | E2E-3 | Smoke #5 |
-| AC-7.x | `AppShellModelTest` | — | E2E-5 | Smoke #1 |
-| AC-8.x | Write resolver tests | Service user | — | Smoke #8 |
-| AC-9.x | Full `mvn test` | Pipeline | Pipeline | Build |
+After deploy to local author:
+
+1. Open ticket list — tickets visible
+2. Filter by status — list updates
+3. Create ticket — redirect to detail with new `TICKET-*`
+4. Add comment — appears in thread
+5. Edit status — persists on detail
+6. OSGi: `stms.core` Active
 
 ---
 
-## 11. Related documents
+## CI / pipeline
 
-- `acceptance-criteria.md` — Given/When/Then criteria
-- `api-contract.md` — Servlet contracts for integration tests
-- `implementation-plan.md` — Phase 5 hardening tasks
-- `.res.local/documents/tool-workflow.md` — AI validation workflow
+| Gate | When |
+|---|---|
+| `mvn test -pl core` | Every Java change |
+| `mvn clean install` | Pre-merge |
+| `it.tests` | Cloud Manager Custom Functional Testing |
+| `ui.tests` | Cloud Manager Custom UI Testing (when specs added) |
+
+Traceability: `acceptance-criteria.md` Testing section

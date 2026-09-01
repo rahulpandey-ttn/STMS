@@ -1,0 +1,71 @@
+.stms-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4375rem;
+}
+
+.stms-field__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--stms-text-secondary);
+}
+
+.stms-field__required {
+    color: var(--stms-error);
+}
+
+.stms-field__input,
+.stms-field__select,
+.stms-field__textarea {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--stms-line);
+    border-radius: var(--stms-radius-sm);
+    background: var(--stms-canvas);
+    font-size: 0.84rem;
+    color: var(--stms-text-primary);
+    font-family: var(--stms-font-body);
+    outline: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.stms-field__textarea {
+    resize: vertical;
+    min-height: 8rem;
+}
+
+.stms-field__input:focus,
+.stms-field__select:focus,
+.stms-field__textarea:focus {
+    border-color: var(--stms-indigo);
+    background: var(--stms-surface);
+}
+
+.stms-field__input::placeholder,
+.stms-field__textarea::placeholder {
+    color: var(--stms-text-faint);
+}
+
+.stms-field__input--invalid,
+.stms-field__select.stms-field__input--invalid,
+.stms-field__textarea.stms-field__input--invalid {
+    border-color: var(--stms-error);
+    background: var(--stms-error-bg);
+}
+
+.stms-field__error {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--stms-error);
+}
+
+.stms-field__error[hidden] {
+    display: none;
+}
+
+.stms-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-top: 0.5rem;
+}

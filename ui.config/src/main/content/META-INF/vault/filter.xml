@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspaceFilter version="1.0">
+    <filter root="/apps/stms/osgiconfig"/>
+    <filter root="/oak:index/stms-ticket-index"/>
+    <filter root="/_oak_index/stms-ticket-index"/>
+</workspaceFilter>

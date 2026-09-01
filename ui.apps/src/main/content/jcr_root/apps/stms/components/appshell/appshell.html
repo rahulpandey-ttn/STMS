@@ -1,0 +1,110 @@
+<!--/*
+    Copyright 2026 TTN
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/-->
+<sly data-sly-use.shell="com.ttn.stms.core.shell.models.AppShellModel"
+     data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"/>
+
+<sly data-sly-call="${clientlib.css @ categories='stms.components.appshell'}"/>
+
+<div class="stms-app cmp-appshell" data-cmp-is="appshell">
+    <aside class="stms-sidebar cmp-appshell__sidebar" aria-label="Main navigation">
+        <a class="stms-sidebar__brand" href="${shell.ticketsListUrl}">
+            <span class="stms-sidebar__brand-mark">${shell.brandMark}</span>
+            <span>
+                ${shell.brandTitle}
+                <span class="stms-sidebar__brand-sub">${shell.brandSubtitle}</span>
+            </span>
+        </a>
+
+        <nav class="stms-sidebar__nav" aria-label="Workspace">
+            <div class="stms-sidebar__nav-label">Workspace</div>
+            <a data-sly-repeat.item="${shell.workspaceNav}"
+               class="stms-sidebar__nav-item${item.active ? ' stms-sidebar__nav-item--active' : ''}"
+               href="${item.href}">
+                <span>${item.label}</span>
+                <span class="stms-sidebar__nav-count"
+                      data-sly-test="${item.showCount}">${item.count}</span>
+            </a>
+        </nav>
+
+        <nav class="stms-sidebar__nav" aria-label="Manage">
+            <div class="stms-sidebar__nav-label">Manage</div>
+            <a data-sly-repeat.item="${shell.manageNav}"
+               class="stms-sidebar__nav-item${item.active ? ' stms-sidebar__nav-item--active' : ''}"
+               href="${item.href}">
+                <span>${item.label}</span>
+            </a>
+        </nav>
+
+        <div class="stms-sidebar__foot">
+            <div class="stms-sidebar__avatar">${shell.userInitials}</div>
+            <div>
+                <div class="stms-sidebar__foot-name">${shell.userDisplayName}</div>
+                <div class="stms-sidebar__foot-role">${shell.userRole}</div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="stms-app__main cmp-appshell__main">
+        <header class="stms-topbar cmp-appshell__topbar">
+            <button class="stms-topbar__icon-btn stms-topbar__menu-btn cmp-appshell__menu-toggle"
+                    type="button"
+                    aria-label="Open navigation"
+                    aria-expanded="false">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
+            </button>
+
+            <form class="stms-topbar__search cmp-appshell__search"
+                  method="get"
+                  action="${shell.ticketsListUrl}">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input class="stms-topbar__search-input"
+                       type="search"
+                       name="assignee"
+                       placeholder="Search tickets, people, or IDs..."
+                       aria-label="Search tickets"/>
+            </form>
+
+            <div class="stms-topbar__actions">
+                <button class="stms-topbar__icon-btn" type="button" aria-label="Notifications">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                    </svg>
+                </button>
+                <a class="stms-btn stms-btn--primary"
+                   data-sly-test="${shell.hasCreateTicketPage}"
+                   href="${shell.createTicketUrl}">
+                    <svg class="stms-btn__icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    New ticket
+                </a>
+            </div>
+        </header>
+
+        <main class="stms-app__content cmp-appshell__content">
+            <sly data-sly-use.container="com.adobe.cq.wcm.core.components.models.LayoutContainer"
+                 data-sly-include="container.html"></sly>
+        </main>
+    </div>
+</div>
+
+<sly data-sly-call="${clientlib.js @ categories='stms.components.appshell'}"/>

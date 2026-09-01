@@ -1,0 +1,101 @@
+<!--/*
+    Copyright 2026 TTN
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/-->
+<sly data-sly-use.detail="com.ttn.stms.core.tickets.models.TicketDetailModel"
+     data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"/>
+
+<sly data-sly-call="${clientlib.css @ categories='stms.components.ticketdetail'}"/>
+
+<section class="cmp-ticketdetail" data-cmp-is="ticketdetail">
+    <div class="cmp-ticketdetail__toolbar">
+        <a class="stms-btn stms-btn--secondary cmp-ticketdetail__back"
+           data-sly-test="${detail.hasListPage}"
+           href="${detail.listPage @ extension='html'}">&larr; Back to tickets</a>
+        <a class="stms-btn stms-btn--secondary cmp-ticketdetail__edit"
+           data-sly-test="${detail.hasEditUrl}"
+           href="${detail.editUrl}">Edit ticket</a>
+    </div>
+
+    <p class="stms-alert stms-alert--success" data-sly-test="${detail.created}" role="status">
+        Ticket created successfully.
+    </p>
+
+    <p class="stms-alert stms-alert--success" data-sly-test="${detail.updated}" role="status">
+        Ticket updated successfully.
+    </p>
+
+    <p class="stms-alert stms-alert--error" data-sly-test="${detail.notFound}" role="alert">
+        Ticket <strong>${detail.ticketId}</strong> was not found.
+    </p>
+
+    <article class="cmp-ticketdetail__content" data-sly-test="${detail.found}" data-sly-set.ticket="${detail.ticket}">
+        <header class="stms-panel cmp-ticketdetail__header-panel">
+            <div class="cmp-ticketdetail__header">
+                <div class="cmp-ticketdetail__header-main">
+                    <p class="cmp-ticketdetail__id">${ticket.ticketId}</p>
+                    <h1 class="stms-page-head__title cmp-ticketdetail__title">${ticket.title}</h1>
+                </div>
+                <span class="stms-badge stms-badge--${ticket.statusBadgeClass}">
+                    <span class="stms-badge__dot"></span>
+                    ${ticket.statusEnum ? ticket.statusEnum.label : ticket.status}
+                </span>
+            </div>
+        </header>
+
+        <div class="stms-panel cmp-ticketdetail__meta-panel">
+            <h2 class="stms-panel__title cmp-ticketdetail__section-label">Details</h2>
+            <dl class="cmp-ticketdetail__meta">
+                <div class="cmp-ticketdetail__meta-item">
+                    <dt class="stms-field__label">Priority</dt>
+                    <dd>
+                        <span class="stms-priority-text stms-priority-text--${ticket.priorityLevelClass}">
+                            ${ticket.priorityEnum ? ticket.priorityEnum.label : ticket.priority}
+                        </span>
+                    </dd>
+                </div>
+                <div class="cmp-ticketdetail__meta-item">
+                    <dt class="stms-field__label">Assignee</dt>
+                    <dd>
+                        <div class="stms-person" data-sly-test="${ticket.hasAssignee}">
+                            <div class="stms-person__avatar stms-person__avatar--${ticket.assigneeAvatarVariant}">${ticket.assigneeInitials}</div>
+                            <span class="stms-person__email">${ticket.assignee}</span>
+                        </div>
+                        <span class="stms-muted" data-sly-test="${!ticket.hasAssignee}">—</span>
+                    </dd>
+                </div>
+                <div class="cmp-ticketdetail__meta-item">
+                    <dt class="stms-field__label">Creator</dt>
+                    <dd class="stms-muted">${ticket.createdBy || '—'}</dd>
+                </div>
+                <div class="cmp-ticketdetail__meta-item">
+                    <dt class="stms-field__label">Created</dt>
+                    <dd class="stms-muted">
+                        <time data-sly-test="${ticket.createdDate}"
+                              datetime="${'yyyy-MM-dd HH:mm:ss' @ format=ticket.createdDate}">
+                            ${'dd MMM yyyy, HH:mm' @ format=ticket.createdDate}
+                        </time>
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="stms-panel cmp-ticketdetail__description-panel">
+            <h2 class="stms-panel__title cmp-ticketdetail__section-label">Description</h2>
+            <p class="cmp-ticketdetail__description-text">${ticket.description}</p>
+        </div>
+    </article>
+</section>
+
+<sly data-sly-call="${clientlib.js @ categories='stms.components.ticketdetail'}"/>

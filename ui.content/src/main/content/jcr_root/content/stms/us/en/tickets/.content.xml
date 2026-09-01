@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0" xmlns:cq="http://www.day.com/jcr/cq/1.0" xmlns:jcr="http://www.jcp.org/jcr/1.0" xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+    jcr:primaryType="cq:Page">
+    <jcr:content
+        jcr:primaryType="cq:PageContent"
+        jcr:title="Tickets"
+        cq:template="/conf/stms/settings/wcm/templates/page-content"
+        sling:resourceType="stms/components/page">
+        <root
+            jcr:primaryType="nt:unstructured"
+            sling:resourceType="stms/components/appshell"
+            layout="simple"
+            ticketsListPage="/content/stms/us/en/tickets"
+            createTicketPage="/content/stms/us/en/tickets/create-ticket">
+            <ticketlist
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="stms/components/ticketlist"
+                detailPage="/content/stms/us/en/ticket-detail"
+                createPage="/content/stms/us/en/tickets/create-ticket"/>
+        </root>
+    </jcr:content>
+    <create-ticket
+        jcr:primaryType="cq:Page">
+        <jcr:content
+            jcr:primaryType="cq:PageContent"
+            jcr:title="Create Ticket"
+            cq:template="/conf/stms/settings/wcm/templates/page-content"
+            sling:resourceType="stms/components/page">
+            <root
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="stms/components/appshell"
+                layout="simple"
+                ticketsListPage="/content/stms/us/en/tickets"
+                createTicketPage="/content/stms/us/en/tickets/create-ticket">
+                <ticketcreate
+                    jcr:primaryType="nt:unstructured"
+                    sling:resourceType="stms/components/ticketcreate"
+                    detailPage="/content/stms/us/en/ticket-detail"
+                    listPage="/content/stms/us/en/tickets"/>
+            </root>
+        </jcr:content>
+    </create-ticket>
+    <edit-ticket
+        jcr:primaryType="cq:Page">
+        <jcr:content
+            jcr:primaryType="cq:PageContent"
+            jcr:title="Edit Ticket"
+            cq:template="/conf/stms/settings/wcm/templates/page-content"
+            sling:resourceType="stms/components/page">
+            <root
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="stms/components/appshell"
+                layout="simple"
+                ticketsListPage="/content/stms/us/en/tickets"
+                createTicketPage="/content/stms/us/en/tickets/create-ticket">
+                <ticketedit
+                    jcr:primaryType="nt:unstructured"
+                    sling:resourceType="stms/components/ticketedit"
+                    detailPage="/content/stms/us/en/ticket-detail"
+                    listPage="/content/stms/us/en/tickets"/>
+            </root>
+        </jcr:content>
+    </edit-ticket>
+</jcr:root>

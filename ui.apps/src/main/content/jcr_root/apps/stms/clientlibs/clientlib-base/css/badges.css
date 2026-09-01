@@ -1,0 +1,88 @@
+.stms-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.3125rem 0.6875rem 0.3125rem 0.5625rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.stms-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.stms-badge--open {
+    background: var(--stms-amber-bg);
+    color: var(--stms-amber);
+}
+
+.stms-badge--open .stms-badge__dot {
+    background: var(--stms-amber-dot);
+}
+
+.stms-badge--progress {
+    background: var(--stms-sky-bg);
+    color: var(--stms-sky);
+}
+
+.stms-badge--progress .stms-badge__dot {
+    background: var(--stms-sky-dot);
+}
+
+.stms-badge--resolved {
+    background: var(--stms-emerald-bg);
+    color: var(--stms-emerald);
+}
+
+.stms-badge--resolved .stms-badge__dot {
+    background: var(--stms-emerald-dot);
+}
+
+.stms-badge--closed {
+    background: #E8E9F0;
+    color: #4B5078;
+}
+
+.stms-badge--closed .stms-badge__dot {
+    background: #9A9EBB;
+}
+
+.stms-priority-flag {
+    width: 4px;
+    height: 1.625rem;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.stms-priority-flag--high {
+    background: var(--stms-pri-high);
+}
+
+.stms-priority-flag--medium {
+    background: var(--stms-pri-med);
+}
+
+.stms-priority-flag--low {
+    background: var(--stms-pri-low);
+}
+
+.stms-priority-text {
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.stms-priority-text--high {
+    color: var(--stms-pri-high);
+}
+
+.stms-priority-text--medium {
+    color: var(--stms-pri-med);
+}
+
+.stms-priority-text--low {
+    color: var(--stms-pri-low);
+}

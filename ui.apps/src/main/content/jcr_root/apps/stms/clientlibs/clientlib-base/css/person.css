@@ -1,0 +1,39 @@
+.stms-person {
+    display: flex;
+    align-items: center;
+    gap: 0.5625rem;
+}
+
+.stms-person__avatar {
+    width: 1.625rem;
+    height: 1.625rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.stms-person__avatar--1 {
+    background: linear-gradient(135deg, #4F46E5, #7C6FF0);
+}
+
+.stms-person__avatar--2 {
+    background: linear-gradient(135deg, #0EA5E9, #38BDF8);
+}
+
+.stms-person__avatar--3 {
+    background: linear-gradient(135deg, #10B981, #34D399);
+}
+
+.stms-person__avatar--4 {
+    background: linear-gradient(135deg, #F59E0B, #E11D48);
+}
+
+.stms-person__email {
+    font-size: 0.8125rem;
+    color: var(--stms-text-primary);
+}

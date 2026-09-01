@@ -1,0 +1,106 @@
+<!--/*
+    Copyright 2026 TTN
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/-->
+<sly data-sly-use.comments="com.ttn.stms.core.tickets.models.TicketCommentsModel"
+     data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"/>
+
+<sly data-sly-call="${clientlib.css @ categories='stms.components.ticketcomments'}"/>
+
+<section class="cmp-ticketcomments" data-cmp-is="ticketcomments">
+    <p class="stms-alert stms-alert--error" data-sly-test="${!comments.hasTicketId}" role="alert">
+        No ticket ID provided. Open this page with a <code>ticketId</code> query parameter.
+    </p>
+
+    <p class="stms-alert stms-alert--error" data-sly-test="${comments.hasTicketId && comments.notFound}" role="alert">
+        Ticket <strong>${comments.ticketId}</strong> was not found.
+    </p>
+
+    <div data-sly-test="${comments.found}">
+        <p class="stms-alert stms-alert--success" data-sly-test="${comments.commentAdded}" role="status">
+            Comment added successfully.
+        </p>
+
+        <p class="stms-alert stms-alert--error" data-sly-test="${comments.hasError}" role="alert">${comments.errorMessage}</p>
+
+        <section class="stms-panel cmp-ticketcomments__list-panel">
+            <h2 class="stms-panel__title cmp-ticketcomments__section-label">
+                Comments (${comments.comments.size})
+            </h2>
+
+            <ul class="cmp-ticketcomments__comment-list" data-sly-test="${comments.comments}">
+                <li class="cmp-ticketcomments__comment" data-sly-repeat.comment="${comments.comments}">
+                    <div class="cmp-ticketcomments__comment-header">
+                        <strong class="cmp-ticketcomments__comment-author">${comment.author}</strong>
+                        <time class="stms-muted cmp-ticketcomments__comment-date"
+                              data-sly-test="${comment.createdDate}"
+                              datetime="${'yyyy-MM-dd HH:mm:ss' @ format=comment.createdDate}">
+                            ${'dd MMM yyyy, HH:mm' @ format=comment.createdDate}
+                        </time>
+                    </div>
+                    <p class="cmp-ticketcomments__comment-text">${comment.text}</p>
+                </li>
+            </ul>
+
+            <p class="stms-muted cmp-ticketcomments__no-comments"
+               data-sly-test="${!comments.comments || comments.comments.empty}">
+                No comments yet. Be the first to add one.
+            </p>
+        </section>
+
+        <div class="stms-panel cmp-ticketcomments__form-panel">
+            <div class="stms-panel__head-left cmp-ticketcomments__form-panel-head">
+                <span class="stms-panel__icon" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </span>
+                <h2 class="stms-panel__title">Add a comment</h2>
+            </div>
+
+            <form class="stms-panel__body cmp-ticketcomments__form"
+                  method="post"
+                  action="${comments.formAction}"
+                  novalidate="novalidate">
+                <input type="hidden" name=":cq_csrf_token" value=""/>
+                <input type="hidden" name="ticketId" value="${comments.ticketId}"/>
+                <input type="hidden" name="detailPage" value="${comments.detailPage || currentPage.path}"/>
+
+                <div class="stms-field">
+                    <label class="stms-field__label" for="${resource.path @ context='attribute'}-text">
+                        Comment <span class="stms-field__required">*</span>
+                    </label>
+                    <textarea class="stms-field__textarea"
+                              id="${resource.path @ context='attribute'}-text"
+                              name="text"
+                              rows="4"
+                              maxlength="5000"
+                              placeholder="Write your comment..."
+                              aria-required="true"
+                              aria-describedby="${resource.path @ context='attribute'}-text-error">${comments.textValue}</textarea>
+                    <p class="stms-field__error"
+                       id="${resource.path @ context='attribute'}-text-error"
+                       role="alert"
+                       hidden="hidden"></p>
+                </div>
+
+                <div class="stms-form-actions">
+                    <button class="stms-btn stms-btn--primary" type="submit">Post comment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<sly data-sly-call="${clientlib.js @ categories='stms.components.ticketcomments'}"/>

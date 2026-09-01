@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:oak="http://jackrabbit.apache.org/oak/ns/1.0"
+    xmlns:jcr="http://www.jcp.org/jcr/1.0"
+    xmlns:nt="http://www.jcp.org/jcr/nt/1.0"
+    jcr:primaryType="oak:QueryIndexDefinition"
+    compatVersion="{Long}2"
+    type="lucene"
+    async="async">
+    <indexRules jcr:primaryType="nt:unstructured">
+        <nt:unstructured jcr:primaryType="nt:unstructured">
+            <properties jcr:primaryType="nt:unstructured">
+                <slingresourceType
+                    jcr:primaryType="nt:unstructured"
+                    name="sling:resourceType"
+                    propertyIndex="{Boolean}true"/>
+                <status
+                    jcr:primaryType="nt:unstructured"
+                    name="status"
+                    propertyIndex="{Boolean}true"/>
+                <assignee
+                    jcr:primaryType="nt:unstructured"
+                    name="assignee"
+                    propertyIndex="{Boolean}true"/>
+                <createdDate
+                    jcr:primaryType="nt:unstructured"
+                    name="createdDate"
+                    ordered="{Boolean}true"/>
+            </properties>
+        </nt:unstructured>
+    </indexRules>
+</jcr:root>

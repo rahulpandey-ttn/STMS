@@ -1,0 +1,43 @@
+.cmp-ticketedit {
+    width: 100%;
+    max-width: 52rem;
+}
+
+.cmp-ticketedit__ticket-id {
+    margin: 0 0 0.25rem;
+    font-family: var(--stms-font-display);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--stms-indigo);
+}
+
+.cmp-ticketedit__form-panel {
+    padding: 0;
+    overflow: hidden;
+}
+
+.cmp-ticketedit__form-panel-head {
+    padding: 1.25rem 1.375rem 0;
+}
+
+.cmp-ticketedit__form {
+    padding: 1.25rem 1.375rem 1.375rem;
+}
+
+.cmp-ticketedit__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.cmp-ticketedit__fields-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 600px) {
+    .cmp-ticketedit__fields-row {
+        grid-template-columns: 1fr;
+    }
+}

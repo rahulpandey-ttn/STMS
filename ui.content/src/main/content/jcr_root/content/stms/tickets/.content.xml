@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jcr:root xmlns:sling="http://sling.apache.org/jcr/sling/1.0"
+    xmlns:jcr="http://www.jcp.org/jcr/1.0"
+    jcr:primaryType="sling:Folder"
+    jcr:title="Support Tickets"
+    sling:resourceType="stms/tickets/folder">
+    <TICKET-0001
+        jcr:primaryType="nt:unstructured"
+        sling:resourceType="stms/tickets/ticket"
+        ticketId="TICKET-0001"
+        title="Login page returns 500"
+        description="Users cannot sign in after deploy."
+        status="open"
+        priority="high"
+        assignee="rahul.pandey@ttn.com"
+        createdDate="{Date}2026-08-31T10:15:00.000+05:30">
+        <comments
+            jcr:primaryType="nt:unstructured"
+            sling:resourceType="stms/tickets/comments">
+            <comment-20260831-101530-001
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="stms/tickets/comment"
+                commentId="comment-20260831-101530-001"
+                author="admin"
+                text="Reproduced on Chrome 128."
+                createdDate="{Date}2026-08-31T10:15:30.000+05:30"/>
+            <comment-20260831-143000-002
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="stms/tickets/comment"
+                commentId="comment-20260831-143000-002"
+                author="rahul.pandey@ttn.com"
+                text="Assigned to backend team."
+                createdDate="{Date}2026-08-31T14:30:00.000+05:30"/>
+        </comments>
+    </TICKET-0001>
+    <TICKET-0002
+        jcr:primaryType="nt:unstructured"
+        sling:resourceType="stms/tickets/ticket"
+        ticketId="TICKET-0002"
+        title="Broken image on homepage"
+        description="Hero image does not load on the homepage teaser."
+        status="in-progress"
+        priority="medium"
+        assignee="content.author@ttn.com"
+        createdDate="{Date}2026-08-30T09:00:00.000+05:30">
+        <comments
+            jcr:primaryType="nt:unstructured"
+            sling:resourceType="stms/tickets/comments">
+            <comment-20260830-090500-001
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="stms/tickets/comment"
+                commentId="comment-20260830-090500-001"
+                author="content.author@ttn.com"
+                text="Investigating DAM asset reference."
+                createdDate="{Date}2026-08-30T09:05:00.000+05:30"/>
+        </comments>
+    </TICKET-0002>
+    <TICKET-0003
+        jcr:primaryType="nt:unstructured"
+        sling:resourceType="stms/tickets/ticket"
+        ticketId="TICKET-0003"
+        title="Update footer copyright year"
+        description="Footer still shows 2025."
+        status="resolved"
+        priority="low"
+        assignee="rahul.pandey@ttn.com"
+        createdDate="{Date}2026-08-29T16:45:00.000+05:30">
+        <comments
+            jcr:primaryType="nt:unstructured"
+            sling:resourceType="stms/tickets/comments">
+            <comment-20260829-170000-001
+                jcr:primaryType="nt:unstructured"
+                sling:resourceType="stms/tickets/comment"
+                commentId="comment-20260829-170000-001"
+                author="rahul.pandey@ttn.com"
+                text="Updated experience fragment footer text."
+                createdDate="{Date}2026-08-29T17:00:00.000+05:30"/>
+        </comments>
+    </TICKET-0003>
+</jcr:root>

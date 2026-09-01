@@ -1,0 +1,88 @@
+.stms-table-wrap {
+    background: var(--stms-surface);
+    border: 1px solid var(--stms-line);
+    border-radius: var(--stms-radius-lg);
+    overflow: hidden;
+}
+
+.stms-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stms-table thead th {
+    text-align: left;
+    font-family: var(--stms-font-display);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--stms-text-secondary);
+    padding: 0.875rem 1.25rem;
+    background: var(--stms-canvas);
+    border-bottom: 1px solid var(--stms-line);
+    letter-spacing: 0.2px;
+}
+
+.stms-table tbody tr {
+    border-bottom: 1px solid var(--stms-line-soft);
+}
+
+.stms-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.stms-table tbody tr:hover {
+    background: #FAFAFE;
+}
+
+.stms-table td {
+    padding: 1rem 1.25rem;
+    font-size: 0.84rem;
+    color: var(--stms-text-primary);
+    vertical-align: middle;
+}
+
+.stms-table__ticket-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.stms-table__id-link {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--stms-indigo);
+    text-decoration: none;
+}
+
+.stms-table__id-link:hover {
+    text-decoration: underline;
+}
+
+.stms-table__title-link {
+    display: block;
+    margin-top: 0.125rem;
+    color: var(--stms-text-primary);
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.stms-table__title-link:hover {
+    color: var(--stms-indigo);
+}
+
+.stms-table__empty {
+    padding: 2rem 1.25rem;
+    text-align: center;
+    color: var(--stms-text-secondary);
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .stms-table-wrap {
+        overflow-x: auto;
+    }
+
+    .stms-table {
+        min-width: 48rem;
+    }
+}

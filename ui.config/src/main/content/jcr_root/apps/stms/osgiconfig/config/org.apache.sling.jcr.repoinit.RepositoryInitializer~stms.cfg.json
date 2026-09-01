@@ -1,0 +1,9 @@
+{
+    "scripts": [
+        "create path (sling:OrderedFolder) /content/dam/stms",
+        "create path (nt:unstructured) /content/dam/stms/jcr:content",
+        "set properties on /content/dam/stms/jcr:content\n  set cq:conf{String} to /conf/stms\n  set jcr:title{String} to \"STMS\"\nend",
+        "create service user stms-ticket-service",
+        "set ACL for stms-ticket-service\n  allow jcr:read,rep:write,jcr:versionManagement,jcr:lockManagement on /content/stms/tickets\nend"
+    ]
+}

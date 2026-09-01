@@ -1,0 +1,5 @@
+{
+    "user.mapping": [
+        "stms.core:stms-ticket-write=[stms-ticket-service]"
+    ]
+}

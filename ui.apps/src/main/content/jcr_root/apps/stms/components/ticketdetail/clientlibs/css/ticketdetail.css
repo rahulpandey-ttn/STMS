@@ -1,0 +1,121 @@
+.cmp-ticketdetail {
+    width: 100%;
+    max-width: 52rem;
+}
+
+.cmp-ticketdetail__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.cmp-ticketdetail__header-panel,
+.cmp-ticketdetail__meta-panel,
+.cmp-ticketdetail__description-panel,
+.cmp-ticketdetail__comments-panel {
+    padding: 1.375rem;
+    margin-bottom: 1rem;
+}
+
+.cmp-ticketdetail__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.cmp-ticketdetail__id {
+    margin: 0 0 0.25rem;
+    font-family: var(--stms-font-display);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--stms-indigo);
+}
+
+.cmp-ticketdetail__title {
+    margin: 0;
+}
+
+.cmp-ticketdetail__section-label {
+    margin: 0 0 1rem;
+}
+
+.cmp-ticketdetail__meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem 1.5rem;
+    margin: 0;
+}
+
+.cmp-ticketdetail__meta-item {
+    margin: 0;
+}
+
+.cmp-ticketdetail__meta-item dt {
+    margin: 0 0 0.35rem;
+}
+
+.cmp-ticketdetail__meta-item dd {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.cmp-ticketdetail__description-text {
+    margin: 0;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    color: var(--stms-text-primary);
+}
+
+.cmp-ticketdetail__comment-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.cmp-ticketdetail__comment {
+    padding: 1rem;
+    border: 1px solid var(--stms-line-soft);
+    border-radius: var(--stms-radius-sm);
+    background: var(--stms-canvas);
+}
+
+.cmp-ticketdetail__comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.cmp-ticketdetail__comment-author {
+    font-size: 0.875rem;
+}
+
+.cmp-ticketdetail__comment-date {
+    font-size: 0.78rem;
+}
+
+.cmp-ticketdetail__comment-text {
+    margin: 0;
+    line-height: 1.55;
+    font-size: 0.875rem;
+}
+
+.cmp-ticketdetail__no-comments {
+    margin: 0;
+    font-style: italic;
+}
+
+@media (max-width: 600px) {
+    .cmp-ticketdetail__meta {
+        grid-template-columns: 1fr;
+    }
+}

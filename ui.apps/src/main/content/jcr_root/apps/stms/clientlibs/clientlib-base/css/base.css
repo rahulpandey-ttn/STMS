@@ -1,0 +1,53 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--stms-canvas);
+    color: var(--stms-text-primary);
+    font-family: var(--stms-font-body);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.stms-page-head__title,
+.stms-btn,
+.stms-stat__value,
+.stms-table__id-link,
+.stms-person__avatar {
+    font-family: var(--stms-font-display);
+}
+
+.stms-page-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.625rem;
+}
+
+.stms-page-head__title {
+    font-size: 1.625rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--stms-ink);
+    margin: 0 0 0.375rem;
+}
+
+.stms-page-head__subtitle {
+    font-size: 0.84rem;
+    color: var(--stms-text-secondary);
+    margin: 0;
+}
+
+.stms-muted {
+    color: var(--stms-text-secondary);
+}
+
+.stms-section {
+    margin: 0 0 1.5rem;
+}

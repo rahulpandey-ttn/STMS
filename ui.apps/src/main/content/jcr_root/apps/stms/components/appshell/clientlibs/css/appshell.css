@@ -1,0 +1,10 @@
+/* Component-specific shell overrides (layout handled in clientlib-base shell.css) */
+
+/* Authoring: make the editable container area visible in the page editor */
+.cq-wcm-edit .cmp-appshell__content > .cmp-container {
+    min-height: 8rem;
+}
+
+.cq-wcm-edit .cmp-appshell__content > .cmp-container .new.section {
+    min-height: 4rem;
+}

@@ -1,0 +1,187 @@
+<!--/*
+    Copyright 2026 TTN
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/-->
+<sly data-sly-use.list="com.ttn.stms.core.tickets.models.TicketListModel"
+     data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"/>
+
+<sly data-sly-call="${clientlib.css @ categories='stms.components.ticketlist'}"/>
+
+<section class="cmp-ticketlist" data-cmp-is="ticketlist">
+    <div class="stms-page-head cmp-ticketlist__page-head">
+        <div>
+            <h1 class="stms-page-head__title">Support tickets</h1>
+            <p class="stms-page-head__subtitle">${list.totalCount} tickets across all statuses</p>
+        </div>
+    </div>
+
+    <div class="stms-stats cmp-ticketlist__stats">
+        <div class="stms-stat stms-stat--total">
+            <div class="stms-stat__top">
+                <span class="stms-stat__label">Total tickets</span>
+                <span class="stms-stat__dot"></span>
+            </div>
+            <span class="stms-stat__value">${list.totalCount}</span>
+        </div>
+        <div class="stms-stat stms-stat--open">
+            <div class="stms-stat__top">
+                <span class="stms-stat__label">Open</span>
+                <span class="stms-stat__dot"></span>
+            </div>
+            <span class="stms-stat__value">${list.openCount}</span>
+        </div>
+        <div class="stms-stat stms-stat--progress">
+            <div class="stms-stat__top">
+                <span class="stms-stat__label">In progress</span>
+                <span class="stms-stat__dot"></span>
+            </div>
+            <span class="stms-stat__value">${list.inProgressCount}</span>
+        </div>
+        <div class="stms-stat stms-stat--resolved">
+            <div class="stms-stat__top">
+                <span class="stms-stat__label">Resolved</span>
+                <span class="stms-stat__dot"></span>
+            </div>
+            <span class="stms-stat__value">${list.resolvedCount}</span>
+        </div>
+    </div>
+
+    <div class="stms-panel cmp-ticketlist__filters-panel">
+        <button class="stms-panel__head cmp-ticketlist__filters-toggle" type="button" aria-expanded="true">
+            <span class="stms-panel__head-left">
+                <span class="stms-panel__icon" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>
+                    </svg>
+                </span>
+                <span class="stms-panel__title">Filter &amp; sort</span>
+            </span>
+            <svg class="stms-panel__chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="m6 9 6 6 6-6"/>
+            </svg>
+        </button>
+
+        <form class="stms-panel__body cmp-ticketlist__filters" method="get" action="${currentPage.path @ extension='html'}">
+            <div class="stms-panel__grid">
+                <div class="stms-field">
+                    <label class="stms-field__label" for="${resource.path @ context='attribute'}-status">Status</label>
+                    <select class="stms-field__select" id="${resource.path @ context='attribute'}-status" name="status">
+                        <option value="">All statuses</option>
+                        <option data-sly-repeat.option="${list.statusOptions}"
+                                value="${option.value}"
+                                selected="${option.value == list.statusFilter}">${option.label}</option>
+                    </select>
+                </div>
+
+                <div class="stms-field">
+                    <label class="stms-field__label" for="${resource.path @ context='attribute'}-priority">Priority</label>
+                    <select class="stms-field__select" id="${resource.path @ context='attribute'}-priority" name="priority">
+                        <option value="">All priorities</option>
+                        <option data-sly-repeat.option="${list.priorityOptions}"
+                                value="${option.value}"
+                                selected="${option.value == list.priorityFilter}">${option.label}</option>
+                    </select>
+                </div>
+
+                <div class="stms-field">
+                    <label class="stms-field__label" for="${resource.path @ context='attribute'}-assignee">Assignee</label>
+                    <input class="stms-field__input" type="text" id="${resource.path @ context='attribute'}-assignee"
+                           name="assignee" value="${list.assigneeFilter}" placeholder="e.g. user@example.com"/>
+                </div>
+
+                <div class="stms-field">
+                    <label class="stms-field__label" for="${resource.path @ context='attribute'}-creator">Creator</label>
+                    <input class="stms-field__input" type="text" id="${resource.path @ context='attribute'}-creator"
+                           name="creator" value="${list.creatorFilter}" placeholder="e.g. admin"/>
+                </div>
+
+                <div class="stms-field">
+                    <label class="stms-field__label" for="${resource.path @ context='attribute'}-sort">Sort by created</label>
+                    <select class="stms-field__select" id="${resource.path @ context='attribute'}-sort" name="sort">
+                        <option value="createdDate-desc" selected="${list.sortOrder == 'createdDate-desc'}">Newest first</option>
+                        <option value="createdDate-asc" selected="${list.sortOrder == 'createdDate-asc'}">Oldest first</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="stms-panel__actions">
+                <button class="stms-btn stms-btn--primary" type="submit">Apply filters</button>
+                <a class="stms-btn stms-btn--secondary" href="${currentPage.path @ extension='html'}">Clear</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="stms-table-wrap">
+        <p class="stms-table__empty" data-sly-test="${list.empty}">No tickets match the selected filters.</p>
+
+        <table class="stms-table cmp-ticketlist__table" data-sly-test="${!list.empty}">
+            <thead>
+                <tr>
+                    <th scope="col">Ticket</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col">Assignee</th>
+                    <th scope="col">Creator</th>
+                    <th scope="col">Created</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr data-sly-repeat.ticket="${list.tickets}">
+                    <td>
+                        <div class="stms-table__ticket-cell">
+                            <div class="stms-priority-flag stms-priority-flag--${ticket.priorityLevelClass}"></div>
+                            <div>
+                                <a data-sly-test="${list.hasDetailPage}"
+                                   class="stms-table__id-link"
+                                   href="${list.detailPage @ extension='html'}?ticketId=${ticket.ticketId}">${ticket.ticketId}</a>
+                                <span data-sly-test="${!list.hasDetailPage}" class="stms-table__id-link">${ticket.ticketId}</span>
+                                <a data-sly-test="${list.hasDetailPage}"
+                                   class="stms-table__title-link"
+                                   href="${list.detailPage @ extension='html'}?ticketId=${ticket.ticketId}">${ticket.title}</a>
+                                <span data-sly-test="${!list.hasDetailPage}" class="stms-table__title-link">${ticket.title}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="stms-badge stms-badge--${ticket.statusBadgeClass}">
+                            <span class="stms-badge__dot"></span>
+                            ${ticket.statusEnum ? ticket.statusEnum.label : ticket.status}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="stms-priority-text stms-priority-text--${ticket.priorityLevelClass}">
+                            ${ticket.priorityEnum ? ticket.priorityEnum.label : ticket.priority}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="stms-person" data-sly-test="${ticket.hasAssignee}">
+                            <div class="stms-person__avatar stms-person__avatar--${ticket.assigneeAvatarVariant}">${ticket.assigneeInitials}</div>
+                            <span class="stms-person__email">${ticket.assignee}</span>
+                        </div>
+                        <span class="stms-muted" data-sly-test="${!ticket.hasAssignee}">—</span>
+                    </td>
+                    <td class="stms-muted">${ticket.createdBy || '—'}</td>
+                    <td class="stms-muted">
+                        <time data-sly-test="${ticket.createdDate}"
+                              datetime="${'yyyy-MM-dd HH:mm:ss' @ format=ticket.createdDate}">
+                            ${'dd MMM yyyy, HH:mm' @ format=ticket.createdDate}
+                        </time>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<sly data-sly-call="${clientlib.js @ categories='stms.components.ticketlist'}"/>

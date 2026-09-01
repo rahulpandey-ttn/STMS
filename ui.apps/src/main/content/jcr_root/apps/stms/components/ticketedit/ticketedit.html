@@ -1,0 +1,168 @@
+<!--/*
+    Copyright 2026 TTN
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+*/-->
+<sly data-sly-use.form="com.ttn.stms.core.tickets.models.TicketEditModel"
+     data-sly-use.clientlib="/libs/granite/sightly/templates/clientlib.html"/>
+
+<sly data-sly-call="${clientlib.css @ categories='stms.components.ticketedit'}"/>
+
+<section class="cmp-ticketedit" data-cmp-is="ticketedit">
+    <p class="stms-alert stms-alert--error" data-sly-test="${!form.hasTicketId}" role="alert">
+        No ticket ID provided. Open this page with a <code>ticketId</code> query parameter.
+    </p>
+
+    <p class="stms-alert stms-alert--error" data-sly-test="${form.hasTicketId && form.notFound}" role="alert">
+        Ticket <strong>${form.ticketId}</strong> was not found.
+    </p>
+
+    <div data-sly-test="${form.found}">
+        <div class="stms-page-head cmp-ticketedit__page-head">
+            <div>
+                <p class="cmp-ticketedit__ticket-id">${form.ticketId}</p>
+                <h1 class="stms-page-head__title">Edit ticket</h1>
+                <p class="stms-page-head__subtitle">Update ticket details and status</p>
+            </div>
+            <a class="stms-btn stms-btn--secondary"
+               data-sly-test="${form.hasDetailPage}"
+               href="${form.detailPage @ extension='html'}?ticketId=${form.ticketId @ context='uri'}">Cancel</a>
+        </div>
+
+        <p class="stms-alert stms-alert--error" data-sly-test="${form.hasError}" role="alert">${form.errorMessage}</p>
+
+        <div class="stms-panel cmp-ticketedit__form-panel">
+            <div class="stms-panel__head-left cmp-ticketedit__form-panel-head">
+                <span class="stms-panel__icon" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+                    </svg>
+                </span>
+                <h2 class="stms-panel__title">Ticket details</h2>
+            </div>
+
+            <form class="stms-panel__body cmp-ticketedit__form"
+                  method="post"
+                  action="${form.formAction}"
+                  novalidate="novalidate">
+                <input type="hidden" name=":cq_csrf_token" value=""/>
+                <input type="hidden" name="ticketId" value="${form.ticketId}"/>
+                <input type="hidden" name="formPage" value="${currentPage.path}"/>
+                <input type="hidden" name="detailPage" value="${form.detailPage}"/>
+
+                <div class="cmp-ticketedit__fields">
+                    <div class="stms-field">
+                        <label class="stms-field__label" for="${resource.path @ context='attribute'}-title">
+                            Title <span class="stms-field__required">*</span>
+                        </label>
+                        <input class="stms-field__input"
+                               type="text"
+                               id="${resource.path @ context='attribute'}-title"
+                               name="title"
+                               value="${form.titleValue}"
+                               maxlength="200"
+                               placeholder="Brief summary of the issue"
+                               aria-required="true"
+                               aria-describedby="${resource.path @ context='attribute'}-title-error"/>
+                        <p class="stms-field__error"
+                           id="${resource.path @ context='attribute'}-title-error"
+                           role="alert"
+                           hidden="hidden"></p>
+                    </div>
+
+                    <div class="stms-field">
+                        <label class="stms-field__label" for="${resource.path @ context='attribute'}-description">
+                            Description <span class="stms-field__required">*</span>
+                        </label>
+                        <textarea class="stms-field__textarea"
+                                  id="${resource.path @ context='attribute'}-description"
+                                  name="description"
+                                  rows="6"
+                                  placeholder="Describe the issue in detail"
+                                  aria-required="true"
+                                  aria-describedby="${resource.path @ context='attribute'}-description-error">${form.descriptionValue}</textarea>
+                        <p class="stms-field__error"
+                           id="${resource.path @ context='attribute'}-description-error"
+                           role="alert"
+                           hidden="hidden"></p>
+                    </div>
+
+                    <div class="cmp-ticketedit__fields-row">
+                        <div class="stms-field">
+                            <label class="stms-field__label" for="${resource.path @ context='attribute'}-status">
+                                Status <span class="stms-field__required">*</span>
+                            </label>
+                            <select class="stms-field__select"
+                                    id="${resource.path @ context='attribute'}-status"
+                                    name="status"
+                                    aria-required="true"
+                                    aria-describedby="${resource.path @ context='attribute'}-status-error">
+                                <option data-sly-repeat.option="${form.statusOptions}"
+                                        value="${option.value}"
+                                        selected="${option.value == form.statusValue}">${option.label}</option>
+                            </select>
+                            <p class="stms-field__error"
+                               id="${resource.path @ context='attribute'}-status-error"
+                               role="alert"
+                               hidden="hidden"></p>
+                        </div>
+
+                        <div class="stms-field">
+                            <label class="stms-field__label" for="${resource.path @ context='attribute'}-priority">
+                                Priority <span class="stms-field__required">*</span>
+                            </label>
+                            <select class="stms-field__select"
+                                    id="${resource.path @ context='attribute'}-priority"
+                                    name="priority"
+                                    aria-required="true"
+                                    aria-describedby="${resource.path @ context='attribute'}-priority-error">
+                                <option data-sly-repeat.option="${form.priorityOptions}"
+                                        value="${option.value}"
+                                        selected="${option.value == form.priorityValue}">${option.label}</option>
+                            </select>
+                            <p class="stms-field__error"
+                               id="${resource.path @ context='attribute'}-priority-error"
+                               role="alert"
+                               hidden="hidden"></p>
+                        </div>
+                    </div>
+
+                    <div class="stms-field">
+                        <label class="stms-field__label" for="${resource.path @ context='attribute'}-assignee">Assignee</label>
+                        <input class="stms-field__input"
+                               type="email"
+                               id="${resource.path @ context='attribute'}-assignee"
+                               name="assignee"
+                               value="${form.assigneeValue}"
+                               placeholder="e.g. user@example.com"
+                               aria-describedby="${resource.path @ context='attribute'}-assignee-error"/>
+                        <p class="stms-field__error"
+                           id="${resource.path @ context='attribute'}-assignee-error"
+                           role="alert"
+                           hidden="hidden"></p>
+                    </div>
+                </div>
+
+                <div class="stms-form-actions">
+                    <button class="stms-btn stms-btn--primary" type="submit">Save changes</button>
+                    <a class="stms-btn stms-btn--secondary"
+                       data-sly-test="${form.hasDetailPage}"
+                       href="${form.detailPage @ extension='html'}?ticketId=${form.ticketId @ context='uri'}">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<sly data-sly-call="${clientlib.js @ categories='stms.components.ticketedit'}"/>

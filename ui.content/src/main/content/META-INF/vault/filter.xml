@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workspaceFilter version="1.0">
+    <filter root="/conf/stms" mode="merge"/>
+    <filter root="/conf/stms/settings/wcm/templates/page-content" mode="replace"/>
+    <filter root="/conf/stms/settings/wcm/template-types/page/policies" mode="replace"/>
+    <filter root="/conf/stms/settings/wcm/policies/stms/components/container" mode="replace"/>
+    <filter root="/content/stms/us/en/tickets" mode="replace"/>
+    <filter root="/content/stms/us/en/ticket-detail" mode="replace"/>
+    <filter root="/content/stms" mode="merge"/>
+    <filter root="/content/dam/stms" mode="merge">
+        <exclude pattern="/content/dam/stms(/.*)?"/>
+        <include pattern="/content/dam/stms/jcr:content(/.*)?"/>
+    </filter>
+    <filter root="/content/dam/stms/asset.jpg" mode="merge"/>
+    <filter root="/content/experience-fragments/stms" mode="merge"/>
+</workspaceFilter>

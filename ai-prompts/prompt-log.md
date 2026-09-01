@@ -23,5 +23,5 @@ Chronological index of Cursor prompts. **Full entries with accept/reject detail*
 
 | Type | Location |
 |---|---|
-| Reusable prompt templates | `ai-prompts/planning.md`, `design.md`, etc. |
+| Reusable prompt templates | `ai-prompts/reusable-prompts/planning.md`, `design.md`, etc. |
 | Actual session history | `ai-prompts/history/*.md` |

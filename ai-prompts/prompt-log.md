@@ -19,10 +19,6 @@ Chronological index of Cursor prompts. **Full entries with accept/reject detail*
 | P-DOC-001 | 2026-09-01 | Documentation | tool-workflow.md | [documentation.md](./history/documentation.md) |
 | P-DOC-004 | 2026-09-01 | Documentation | Assessment template | [documentation.md](./history/documentation.md) |
 
-## Original numbered prompts
-
-See [`STMS-propmts-history.md`](./STMS-propmts-history.md) for the initial 12 feature prompts that started the project.
-
 ## Templates vs history
 
 | Type | Location |

@@ -1,6 +1,6 @@
 # API Contract
 
-Base URL (local author): `http://localhost:4502`
+Base URL (author): `http://localhost:4502`
 
 All write endpoints: **POST only**, `application/x-www-form-urlencoded`, Granite CSRF token required, persistence via `TicketRepository` + service user `stms-ticket-write`.
 

@@ -2,6 +2,11 @@
 
 ---
 
+### Plan Documentation
+
+- [ ] `ai-prompts/ticket-state-machine-implemenation.plan.md`
+
+
 ## P-PLN-001 | Gap analysis — list component
 
 **Date:** 2026-08-31  

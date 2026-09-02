@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -85,7 +86,7 @@ public class TicketCreateIT {
     public void cleanup() throws ClientException {
         if (createdTicketPath != null) {
             try {
-                adminAuthor.doDelete(createdTicketPath + ".json", HttpStatus.SC_OK);
+                adminAuthor.doDelete(createdTicketPath + ".json", Collections.emptyList(), Collections.emptyList(), HttpStatus.SC_OK);
             } catch (ClientException ignored) {
                 // Best-effort cleanup; node may already be removed
             }
